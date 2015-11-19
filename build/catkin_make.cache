@@ -1,0 +1,2 @@
+project
+-DCATKIN_DEVEL_PREFIX=/home/shallowblue/Project/devel -DCMAKE_INSTALL_PREFIX=/home/shallowblue/Project/install -G Unix Makefiles

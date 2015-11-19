@@ -1,0 +1,8 @@
+prefix=/home/shallowblue/Project/devel
+
+Name: project
+Description: Description of project
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/shallowblue/Project/devel/lib 
+Requires: 
