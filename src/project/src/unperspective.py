@@ -7,9 +7,11 @@ import argparse
 
 def seek_to(file, content):
     """
-    Given a file, seeks to the line immediately after the first one containing the string CONTENT.
-    After reaching the end of the file, seeks back to the beginning and keeps looking up to the point
-    we started at. Return the last line read if it worked, or an empty string if not found.
+    Given a file, seeks to the line immediately after the first one 
+    containing the string CONTENT. After reaching the end of the file, 
+    seeks back to the beginning and keeps looking up to the point we 
+    started at. Return the last line read if it worked, or an empty 
+    string if not found.
     """
     point = file.tell()
     has_looped = False
@@ -23,8 +25,6 @@ def seek_to(file, content):
             has_looped = True
         elif has_looped and file.tell() >= point:
             return ''
-
-f = open('labels', 'r')
     
 
 def load_camera_calibration(calib):
@@ -86,6 +86,24 @@ def getChessboardOutsideCorners(corners, size):
     return srccorners, dstcorners
 
 
+def label_squares(squares):
+    """
+    Given a list of images of board squares, return a string specifying 
+    the label of each in order.
+    Currently a dumb implementation that assumes all squares with more
+    standard deviation than the median are occupied.
+    """
+    std = [np.std(square[:,:,2]) for square in squares]
+    med = np.median(std)
+
+    labels = []
+    for i in range(len(squares)):
+        if std[i] > med:
+            labels.append(1)
+        else:
+            labels.append(0)
+    return labels
+
 
 if __name__ == '__main__':
 
@@ -144,10 +162,11 @@ if __name__ == '__main__':
             x = i*delta
             for j in range(8):
                 y = j*delta
-                squares.append(unwarped[x+ign:x+delta-ign, y+ign:y+delta-ign])
+                squares.append(unwarped[x+ign:x+delta-ign, 
+                                        y+ign:y+delta-ign])
 
         if labels is None:
-            # Create and display a single 8x8 board image of just the squares 
+            # Create and display a single 8x8 image of just the squares 
             squaresprime = []
             for i in range(0,64,8):
                 squaresprime.append(np.hstack(squares[i:i+8]))
@@ -167,28 +186,17 @@ if __name__ == '__main__':
             string_real_label += labels.readline().strip()
         real_label = [1 if c in 'bwBW' else 0 for c in string_real_label]
 
-        def label_square(square):
-            std = [np.std(square[:,:,2]) for square in squares]
-            med = np.median(std)
-            avg = np.mean(std)
-
-            labels = []
-            for i in range(len(squares)):
-                if std[i] > med:
-                    labels.append(1)
-                else:
-                    labels.append(0)
-            return labels
-
-        # Compute the labels of each of the squares
+        # Compute the labels of each of the squares, and test correctness.
         test_label = label_squares(squares)
-        correctness = [1.0 * (test_label[i] == real_label[i]) for i in range(len(squares))]
+        correctness = [1.0 * (test_label[i] == real_label[i]) 
+                       for i in range(len(squares))]
         accuracy = sum(correctness) / len(correctness)
 
         print '\tlabels', accuracy*100, 'percent accurate'
         total_accuracy += accuracy
 
-    print 'Total accuracy:', total_accuracy/len(filenames)
+    if labels: 
+        print 'Total accuracy:', total_accuracy/len(filenames)
             
 
 

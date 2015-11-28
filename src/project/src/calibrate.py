@@ -32,11 +32,11 @@ def calibrate_camera(imfiles):
     for imfile in imfiles:
 
         im = v.imread(imfile, v.CV_LOAD_IMAGE_GRAYSCALE)
-        found, corners = v.findChessboardCorners(im, SIZE, None)
+        found, corners = v.findChessboardCorners(im, size, None)
 
         if found:
             # refine the corners
-            v.cornerSubPix(im, corners, CRNR_WIND, CRNR_IGN, CRNR_CRIT)
+            v.cornerSubPix(im, corners, CRNR_WIND, CRNR_IGN, CRNR_TERM)
 
             # then add them to the corner list
             objpoints.append(objp)
@@ -44,7 +44,7 @@ def calibrate_camera(imfiles):
 
             # If verbose, show the corners as they're detected.
             if DBG_SHOW_CORNERS:
-                v.drawChessboardCorners(im, SIZE, corners, found)
+                v.drawChessboardCorners(im, size, corners, found)
                 v.imshow('Corners', im)
                 v.waitKey(500)
 
