@@ -30,6 +30,7 @@ listener = tf.TransformListener()
 
 def move(x=None,y=None,z=None, Q=None, right_planner=right_planner):
     trans, rot = get_coord(silent=True)
+
     if Q is None: Q = rot
     if x is None: x = trans[0]
     if y is None: y = trans[1]
@@ -52,7 +53,7 @@ def move(x=None,y=None,z=None, Q=None, right_planner=right_planner):
     
     right_plan = right_planner.plan()
 
-    raw_input('Press <Enter> to move the left arm to goal pose 1 (path constraints are never enforced during this motion): ')
+    raw_input('Press ENTER if this movement is OK. ')
     
     right_planner.execute(right_plan)
 
