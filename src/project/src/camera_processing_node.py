@@ -3,6 +3,10 @@ import os, sys, argparse
 import numpy as np
 import cv2 as v
 import rospy
+from sensor_msgs.msg import Image
+from tf2_msgs.msg import TFMessage
+from cv_bridge import CvBridge, CvBridgeError
+from baxter_interface import camera as baxter_cam
 
 # Side length of chessboard squares, converted from inches to meters.
 SQUARE_DIM = 2.25 * 2.54/100
@@ -84,6 +88,9 @@ def callback(data):
         data = bridge.cv2_to_imgmsg(un, encoding='passthrough')
         pub.publish(data)
 
+        # TODO: find the TF of the board using v.solvePnP(), and publish it as a TFMessage.
+        # http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#solvepnp
+
 
 def setup_camera():
     c = baxter_cam.CameraController('left_hand_camera')
@@ -105,6 +112,8 @@ if __name__ == '__main__'():
                         help='input image topic')
     parser.add_argument('-o', '--out', required=True,
                         help='output image topic')
+    parser.add_argument('--tf', required=True,
+                        help='TF output topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE
                         help='scaling factor to use before detecting corners')
     args = parser.parse_args()
@@ -120,7 +129,8 @@ if __name__ == '__main__'():
     SCALE = args.scale
 
     # set up the publisher
-    pub = rospy.Publisher(out_topic, Image, latch=True, queue_size=1)
+    impub = rospy.Publisher(out_topic, Image, latch=True, queue_size=1)
+    tfpub = rospy.Publisher(tf_out_topic, TFMessage, latch=True, queue_size=1)
 
     # create a camera listener node
     rospy.init_node('camera_listener')
