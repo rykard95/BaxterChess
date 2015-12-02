@@ -5,6 +5,16 @@ import moveit_commander
 from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint
 from geometry_msgs.msg import PoseStamped
 from baxter_interface import gripper as baxter_gripper
+import cv2
+
+def pickup(hand):
+    hand.command_position(0.0)
+    rospy.sleep(1.0)
+
+def putdown(hand):
+    print('Opening...')
+    hand.command_position(100.0)
+    rospy.sleep(1.0)
 
 def main():
     #Initialize moveit_commander
@@ -24,7 +34,7 @@ def main():
     right_arm.set_planning_time(10)
 
     #Set up the left gripper
-    left_gripper = baxter_gripper.Gripper('left')
+    left_gripper = baxter_gripper.Gripper('right')
 
     #Calibrate the gripper (other commands won't work unless you do this first)
     print('Calibrating...')
@@ -59,9 +69,9 @@ def main():
         goal_1.pose.orientation.z = 0.0
         goal_1.pose.orientation.w = 0.0
 
-        print('Opening...')
-        left_gripper.open(block=True)
-        rospy.sleep(1.0)
+        # print('Opening...')
+        # left_gripper.open(block=True)
+        # rospy.sleep(1.0)
         # orien_const = OrientationConstraint()
         # orien_const.link_name = "left_gripper";
         # orien_const.header.frame_id = "base";
@@ -71,28 +81,32 @@ def main():
         # left_arm.set_path_constraints(consts)
 
         #Set the goal state to the pose you just defined
-        left_arm.set_pose_target(goal_1)
+        right_arm.set_pose_target(goal_1)
 
         #Set the start state for the left arm
-        left_arm.set_start_state_to_current_state()
+        right_arm.set_start_state_to_current_state()
 
         #Plan a path
         for __ in range(20):
-            left_plan = left_arm.plan()
-            if left_plan != []:
+            right_plan = right_arm.plan()
+            if right_plan != []:
                 break
 
         #Execute the plan
         raw_input('Press <Enter> to move the left arm to goal pose 1 (path constraints are never enforced during this motion): ')
-        left_arm.execute(left_plan)
+        
+        #putdown(left_gripper)
+        right_arm.execute(right_plan)
 
-       
+        
+
+        #pickup(left_gripper)
        
 
         #Close the left gripper
-        print('Closing...')
-        left_gripper.close(block=True)
-        rospy.sleep(1.0)
+        # print('Closing...')
+        # left_gripper.close(block=True)
+        # rospy.sleep(1.0)
 
         #Open the left gripper
         # print('Opening...')

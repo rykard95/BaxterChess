@@ -5,7 +5,7 @@ from baxter_interface import gripper as baxter_gripper
 rospy.init_node('gripper_test')
 
 #Set up the left gripper
-left_gripper = baxter_gripper.Gripper('left')
+left_gripper = baxter_gripper.Gripper('right')
 
 #Calibrate the gripper (other commands won't work unless you do this first)
 print('Calibrating...')
@@ -20,6 +20,6 @@ rospy.sleep(2.0)
 
 #Open the left gripper
 print('Opening...')
-left_gripper.command_position(50.0)
+left_gripper.open()# command_position(100.0)
 rospy.sleep(1.0)
 print('Done!')
