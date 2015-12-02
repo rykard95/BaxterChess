@@ -1,4 +1,3 @@
 Header header
-bool capture
 geometry_msgs/Transform source
 geometry_msgs/Transform destination
