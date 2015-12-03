@@ -42,7 +42,8 @@ def find_chessboard_corners(image, scale=1):
 
     if found:
         corners = corners / scale
-        v.cornerSubPix(image[:,:,1], corners, CRNR_WIND, CRNR_IGN, CRNR_TERM)
+        v.cornerSubPix(image[:,:,1], corners, CRNR_WIND, 
+                       CRNR_IGN, CRNR_TERM)
 
         # TODO: fit a linear model to these corners to minimize error
 
@@ -81,15 +82,17 @@ def callback(data):
     found, corners = find_chessboard_corners(im, SCALE)
 
     if found:
-        srccorners, dstcorners = get_chessboard_outer_corners(corners, IMSIZE)
-        M = v.getPerspectiveTransform(srccorners, dstcorners)
+        srcpts, dstpts  = get_chessboard_outer_corners(corners, IMSIZE)
+        M = v.getPerspectiveTransform(srcpts, dstpts)
         un = v.warpPerspective(im, M, IMSIZE)
 
         data = bridge.cv2_to_imgmsg(un, encoding='passthrough')
         pub.publish(data)
 
-        # TODO: find the TF of the board using v.solvePnP(), and publish it as a TFMessage.
-        # http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#solvepnp
+        # TODO: find the TF of the board using v.solvePnP(), 
+        #   and publish it as a TFMessage.
+        # See http://docs.opencv.org/2.4/modules/calib3d/doc/ ...
+        #  ... camera_calibration_and_3d_reconstruction.html#solvepnp
 
 
 def setup_camera():
@@ -97,7 +100,9 @@ def setup_camera():
     c.resolution = RESOLUTION
     c.exposure = EXPOSURE
     c.gain = GAIN
-    c.white_balance_red, c.white_balance_green, c.white_balance_blue = BALANCE_RGB
+    c.white_balance_red = BALANCE_RGB[0]
+    c.white_balance_green = BALANCE_RGB[1]
+    c.white_balance_blue = BALANCE_RGB[2]
 
 
 if __name__ == '__main__'():
@@ -115,7 +120,7 @@ if __name__ == '__main__'():
     parser.add_argument('--tf', required=True,
                         help='TF output topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE
-                        help='scaling factor to use before detecting corners')
+                        help='scale this much before corner-finding')
     args = parser.parse_args()
 
     # get the camera calibration parameters
@@ -123,14 +128,17 @@ if __name__ == '__main__'():
         UNDISTORT = True
         params = np.load(args.calib)
         MTX, DIST = params['mtx'], params['dist']
-        TX, _ = v.getOptimalNewCameraMatrix(mtx, dist, RESOLUTION, 1, RESOLUTION)
+        TX, _ = v.getOptimalNewCameraMatrix(mtx, dist, RESOLUTION, 
+                                            1, RESOLUTION)
     else: UNDISTORT = False
 
     SCALE = args.scale
 
     # set up the publisher
-    impub = rospy.Publisher(out_topic, Image, latch=True, queue_size=1)
-    tfpub = rospy.Publisher(tf_out_topic, TFMessage, latch=True, queue_size=1)
+    impub = rospy.Publisher(out_topic, Image, 
+                            latch=True, queue_size=1)
+    tfpub = rospy.Publisher(tf_out_topic, TFMessage, 
+                            latch=True, queue_size=1)
 
     # create a camera listener node
     rospy.init_node('camera_listener')
