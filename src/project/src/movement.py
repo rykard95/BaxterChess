@@ -7,6 +7,7 @@ from geometry_msgs.msg import PoseStamped
 from baxter_interface import gripper as baxter_gripper
 import baxter_interface
 import cv2
+import numpy as np
 import tf
 
 CLOSE_AMOUNT = 70.0
@@ -29,7 +30,7 @@ right_gripper.calibrate()
 listener = tf.TransformListener()
 
 def move(x=None,y=None,z=None, Q=None, right_planner=right_planner):
-    trans, rot = get_coord(silent=True)
+    trans, rot = rarm_coord()
 
     if Q is None: Q = rot
     if x is None: x = trans[0]
@@ -101,3 +102,10 @@ def get_pose(arm):
     pos = pose['position']
     Q = pose['orientation']
     return pos.x, pos.y, pos.z, [Q.x, Q.y, Q.z, Q.w]
+
+def rarm_coord():
+    trans, rot = get_coord(True)
+    x, y, z, rott = get_pose(right_arm)
+    trans = np.array(trans) + np.array([x,y,z])
+    rot = np.array(rot) + np.array(rott)
+    return trans/2, rot/2

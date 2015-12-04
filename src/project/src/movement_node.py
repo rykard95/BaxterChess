@@ -14,25 +14,41 @@ from moveit_msgs.msg import (
 from baxter_interface import gripper as baxter_grip
 import baxter_interface
 
+from msg import sb_msg
+
+
+
 # the name of the world frame
 BASE_FRAME = 'base'
 
 # go 7cm above desired board positions, then down
-OFFSET_ABOVE = 7 / 100
-OFFSET = np.array([0,0, OFFSET_ABOVE])
+OFFSET = np.array([0,0, 7/100])
 
-    
 
-def goto(trans, rot=(0,-1,0,0)):
+def assign_xyz(arr, xyz):
+    xyz.x = arr[0]
+    xyz.y = arr[1]
+    xyz.z = arr[2]
+    if hasattr(xyz, 'w'):
+        xyz.w = arr[3]
+    return xyz
+
+def assign_arr(xyz, arr=None):
+    has_w = hasattr(xyz, 'w')
+    if arr is None:
+        arr = np.zeros(4 if has_w else 3)
+    arr[0] = xyz.x
+    arr[1] = xyz.y
+    arr[2] = xyz.z
+    if has_w: arr[3] = xyz.w
+    return arr
+
+def goto(trans, rot=np.array([0,-1,0,0])):
     goal = PoseStamped()
     goal.header.frame_id = BASE_FRAME
-    goal.pose.position.x = trans[0]
-    goal.pose.position.y = trans[1]
-    goal.pose.position.z = trans[2]
-    goal.pose.orientation.x = rot[0]
-    goal.pose.orientation.y = rot[1]
-    goal.pose.orientation.z = rot[2]
-    goal.pose.orientation.w = rot[3]
+
+    assign_xyz(trans, goal.pose.position)
+    assign_xyz(rot, goal.pose.orientation)
 
     # find a plan to get there
     right_planner.set_pose_target(goal)
@@ -52,8 +68,7 @@ def goto(trans, rot=(0,-1,0,0)):
 
 
 def lookup_transform(name):
-    trans, rot = tfl.lookupTransform(BASE_FRAME, frame, rospy.Time(0))
-    return trans, rot
+    return tfl.lookupTransform(BASE_FRAME, frame, rospy.Time(0))
 
 def grasp():
     grip.close(block=True)
@@ -78,8 +93,8 @@ def putdown(position):
 
 def move_callback(move):
     # need to pick up a piece at strt, drop it off at dest
-    strt = move.source.translation
-    dest = move.destination.translation
+    strt = assign_arr(move.source.translation)
+    dest = assign_arr(move.destination.translation)
 
     # remember current position, pick up at strt, put down at dest,
     #  and return to the starting position
@@ -129,5 +144,7 @@ if __name__ == '__main__':
 
     # create our node and its listeners and publishers
     rospy.init_node('movement_node')
-    rospy.Subscriber(args.move_topic, Move, callback)
+    rospy.Subscriber(args.move_topic, sb_msg, callback)
+
+    rospy.spin()
 
