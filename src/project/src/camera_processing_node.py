@@ -77,7 +77,7 @@ def callback(data):
     im = bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
 
     if UNDISTORT:
-        im = v.undistort(im, MTX, DIST, None, TX)
+        im = v.undistort(im, MTX, DIST, None, TX) # I don't think these parameters are ordered correctly
 
     found, corners = find_chessboard_corners(im, SCALE)
 
@@ -87,8 +87,17 @@ def callback(data):
         un = v.warpPerspective(im, M, IMSIZE)
 
         data = bridge.cv2_to_imgmsg(un, encoding='passthrough')
-        pub.publish(data)
+        pub.publish(data) #I'm assuming this should be *impub* not *pub*
 
+        quad = np.float32([[srcpts[0][0], srcpts[0][1], 0], [srcpts[1][0], srcpts[1][1], 0], [srcpts[2][0], srcpts[2][1], 0], [srcpts[3][0], srcpts[3][1], 0])
+        #quad_ = cv2.perspectiveTransform(quad.reshape(1, -1, 2), H).reshape(-1, 2) # need to know H matrix
+        ret, rvec, tvec = cv2.solvePnP(quad, quad, mtx, dist) #not really sure about the second argument. Also don't think we need ret
+        # rvec = rotation vector, tvec = translation vector
+        trans = TFMessage
+        trans.transform.translation = tvec
+        trans.transform.rotation = rvec
+        tfpub.publish(trans)
+        
         # TODO: find the TF of the board using v.solvePnP(), 
         #   and publish it as a TFMessage.
         # See http://docs.opencv.org/2.4/modules/calib3d/doc/ ...
