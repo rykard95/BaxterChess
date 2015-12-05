@@ -7,6 +7,9 @@ import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 
 
+# Scaling factor before looking for corners.
+SCALE = 1
+
 # Size of the unperspectivified output image
 IMSIZE = 512
 
@@ -16,16 +19,20 @@ CRNR_WIND = (5,5)
 CRNR_IGN = (-1,-1)
 
 
-def find_chessboard_corners(image, scale=1):
+def find_chessboard_corners(image, scale=None):
     """
     Given an already-loaded image and a percentage to scale by, tries to 
     find a chessboard in the scaled version of the image, then find the
     points to subpixel precision in the original image.
     """
+    if scale is None:
+        scale = SCALE
     if scale != 1:
-        smaller = v.resize(image, dstsize=None, fx=scale, fy=scale)
+        smaller = v.resize(image, dsize=None, fx=scale, fy=scale)
+    else:
+        smaller = image
 
-    found, corners = v.findChessboardCorners(image, (7,7), None)
+    found, corners = v.findChessboardCorners(smaller, (7,7), None)
 
     if found:
         corners = corners / scale
@@ -67,16 +74,17 @@ def callback(data):
 
 
 if __name__ == '__main__':
-    global pub, bridge
 
     desc = 'ROS node that reads an image, finds a chessboard, and, ' \
            'computes the reverse perspective mapping'
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('image_topic')
     parser.add_argument('--name', default='unperspective_node')
+    parser.add_argument('-s', '--scale', type=float, default=SCALE)
     args = parser.parse_args()
     image_topic = args.image_topic
     node_name = args.name
+    SCALE = args.scale
 
     bridge = CvBridge()
 
