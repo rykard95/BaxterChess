@@ -48,10 +48,8 @@ if __name__ == '__main__':
             for j in range(8):
                 x = j*delta
                 a = img[x:x+delta, y:y+delta]
-                plt.imshow(a)
-                plt.pause(1)
-                label = int(raw_input("Label: "))
-                imsave(num_to_folder[label] + str(num) + ".jpg", a)
+                imsave(str(num) + ".jpg", a)
+                num += 1
         # squares.sort(key=evaluate_square)
         # for square in squares:
         #     imsave(str(num) + ".jpg", square)
