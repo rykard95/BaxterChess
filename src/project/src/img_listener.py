@@ -11,7 +11,7 @@ CRITERIA = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_MAX_ITER, 40, 0.001)
 def callback(data):
 	bridge = CvBridge()
 	try:
-		big_im = bridge.imgmsg_to_cv2(data, desired_encoding="passthrough")
+		big_im = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
 		newsize = tuple(int(x*SCALE) for x in big_im.shape[1::-1])
 		im = cv2.resize(big_im, dsize=newsize, fx=0, fy=0)
 
@@ -22,7 +22,7 @@ def callback(data):
 			bw = cv2.cvtColor(big_im, cv2.COLOR_BGR2GRAY)
 			cv2.cornerSubPix(bw, corners, (5,5), (-1,-1), CRITERIA)
 		cv2.drawChessboardCorners(big_im, (7,7), corners, found)
-		msg = bridge.cv2_to_imgmsg(big_im, encoding="passthrough")
+		msg = bridge.cv2_to_imgmsg(big_im, encoding='bgr8')
 		pub.publish(msg)
 		
 	except CvBridgeError, e:

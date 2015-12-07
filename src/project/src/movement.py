@@ -29,14 +29,31 @@ right_gripper = baxter_gripper.Gripper('right')
 right_gripper.calibrate()
 listener = tf.TransformListener()
 
+def make_move(strt, dest):
+    saved = rarm_coord()
+    drop()
+    moveabove(*strt)
+    movert(*strt)
+    grasp()
+    moveabove(*strt)
+    moveabove(*dest)
+    movert(*dest)
+    drop()
+    moveabove(*dest)
+    movert(*saved)
+
+def moveabove(trans, rot):
+    return movert(trans + OFFSET, rot)
+
+def movert(trans=(None,None,None), rot=None):
+    return move(*trans, Q=rot)
+
 def move(x=None,y=None,z=None, Q=None, right_planner=right_planner):
     trans, rot = rarm_coord()
-
     if Q is None: Q = rot
     if x is None: x = trans[0]
     if y is None: y = trans[1]
     if z is None: z = trans[2]
-
     goal = PoseStamped()
     goal.header.frame_id = "base"
     goal.pose.position.x = x
@@ -46,26 +63,19 @@ def move(x=None,y=None,z=None, Q=None, right_planner=right_planner):
     goal.pose.orientation.y = Q[1]
     goal.pose.orientation.z = Q[2]
     goal.pose.orientation.w = Q[3]
-
     print 'Going to ({},{},{}) with orientation {}'.format(x,y,z, Q)
-
     right_planner.set_pose_target(goal)
     right_planner.set_start_state_to_current_state()
-    
     right_plan = right_planner.plan()
-
-    raw_input('Press ENTER if this movement is OK. ')
-    
+    # raw_input('Press ENTER if this movement is OK. ')
     right_planner.execute(right_plan)
-
-    names = right_plan.joint_trajectory.joint_names
-    positions = right_plan.joint_trajectory.points[-1].positions
-    pose = {}
-    for i in range(len(names)):
-        pose[names[i]] = positions[i]
-
-    right_arm.set_joint_positions(pose)
-
+    #names = right_plan.joint_trajectory.joint_names
+    #positions = right_plan.joint_trajectory.points[-1].positions
+    #pose = {}
+    #for i in range(len(names)):
+    #    pose[names[i]] = positions[i]
+    #right_arm.set_joint_positions(pose)
+    rospy.sleep(0.5)
     return pose
 
 
@@ -78,7 +88,7 @@ def drop(right_gripper=right_gripper):
 def get_coord(silent = False):
     try:
         (trans, rot) = listener.lookupTransform('base', 'right_hand', rospy.Time(0))
-        if not silent: print("The coordiantes are: " + str(trans))
+        if not silent: print("The coordinates are: " + str(trans))
         return trans, rot
     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
         if not silent: print("There is something wrong")
