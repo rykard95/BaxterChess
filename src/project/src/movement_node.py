@@ -28,6 +28,8 @@ PERTURB_TOLS = [0.1, 0.1, 0.1]
 OFFSET = np.array([0,0, 7/100])
 
 CLOSE_AMOUNT = 100.0
+hld_frc = 1
+mv_frc = 25
 
 def assign_xyz(arr, xyz):
     xyz.x = arr[0]
@@ -245,6 +247,8 @@ if __name__ == '__main__':
     right_planner.set_planning_time(20)
     right_gripper = baxter_gripper.Gripper('right')
     right_gripper.calibrate()
+    right_gripper.set_holding_force(hld_frc)
+    right_gripper.set_moving_force(mv_frc)
 
     # add the object boundaries to the scene
     # ubp = [0, 0, 0] # upper box position
