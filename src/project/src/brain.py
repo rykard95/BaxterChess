@@ -25,7 +25,8 @@ del ph
 
 PLAYING = None
 
-std_ordering = np.array(chess.SQUARES[::-1])
+std_ordering = np.array(chess.SQUARES).reshape((8,8))[:,::-1].flatten()
+
 
 def initialize(image):
     # Figure out which side Baxter is playing
