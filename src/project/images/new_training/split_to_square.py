@@ -1,7 +1,7 @@
 #! /usr/bin/python
 import os
 import numpy as np
-import cv2 as v
+#import cv2 as v
 import argparse
 from scipy.misc import imsave, imread
 from matplotlib import pyplot as plt
