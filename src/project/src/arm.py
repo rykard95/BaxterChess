@@ -118,6 +118,12 @@ def perturb():
     goto(tuple(x,y,z), left=1)
 
 
+def cele():
+    """Baxter displays prowess over his mortal opponent with a magical celebration."""
+    goto(default_image_pose[0][0])
+    goto(default_action_pose[1][0], left=1])
+
+
 def callback(move):
     # check whether move is 'no move' or not
     if move.type == 0 or move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
@@ -144,6 +150,9 @@ def callback(move):
     elif move.type == 3:
         print("Executing move 3: goto default default image pose...")
         goto_image_pose()
+    elif move.type == 4:
+        print("Executing move 4: Victory, celebration!")
+        cele()
     else:
         print("SOMETHING TERRIBLE HAS HAPPENED!!!")
     print("Finished executing move.")
