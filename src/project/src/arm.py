@@ -22,7 +22,7 @@ from project.msg import BoardMessage
 BASE_FRAME = 'base'
 
 # perturb tolerances.
-PERTURB_TOLS = [0.1, 0.1, 0.1]
+PERTURB_TOLS = [0.05, 0.05, 0.05]
 
 # go 7cm above desired board positions, then down
 OFFSET = np.array([0,0, 7/100])
@@ -123,11 +123,11 @@ def callback(move):
     if move.type == 0 or move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
         print("Executing move " + move.type + ": pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
-        strt = assign_arr(move.source.translation)
+        strt = tuple(move.source.x, move.source.y, move.source.z)
         if move.type:
             dest = assign_arr(trash_bin[0])
         else:
-            dest = assign_arr(move.destination.translation)
+            dest = tuple(move.destination.x, move.destination.y, move.destination.z)
         #  put arms in action pose, pick up at strt, put down at dest,
         #  and return to the imaging position
         goto_action_pose()
