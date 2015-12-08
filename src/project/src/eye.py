@@ -97,6 +97,7 @@ def callback(data):
             impub.publish(message.unperspective)
         if PUBLISH_DRAWPOINTS:
             v.drawChessboardCorners(im, (7,7), corners, found)
+            ptpub.publish(bridge.cv2_to_imgmsg(im, encoding='bgr8'))
 
         # find board-frame coordinates in the right order, then
         # TODO: put them in the world frame and publish them
