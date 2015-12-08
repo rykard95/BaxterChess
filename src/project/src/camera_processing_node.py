@@ -27,7 +27,7 @@ CRNR_WIND = (11,11)
 CRNR_IGN = (-1,-1)
 
 # the size of the unperspectivified output image
-IMSIZE = (512,512)
+IMSIZE = (256,256)
 DSTPTS = np.array([[0,0], [IMSIZE[0],0], [0,IMSIZE[1]], IMSIZE],
                   dtype=np.float32)
 SCALE = 1
@@ -51,12 +51,15 @@ def find_chessboard_corners(image, scale=1):
 
 def corner_order(corners, first_axis=1, second_axis=0):
     order = corners[:,first_axis].argsort()
-    further_two = order[corners[order][:2,second_axis].argsort()]
-    closer_two = order[corners[order][2:,second_axis].argsort()]
-    return np.hstack([further_two, closer_two])
+    further_two = corners[order[:2], second_axis].argsort()
+    closer_two = corners[order[2:], second_axis].argsort() + 2
+    return order[np.hstack([further_two, closer_two])]
 
 def reorder_corners(corners):
-    return corners[corner_order(corners)]
+    corners = corners[corners[:,1].argsort()]
+    further_two = corners[:2,0].argsort()
+    closer_two = corners[2:,0].argsort() + 2
+    return corners[np.hstack([further_two, closer_two])]
 
 def callback(data):
     im = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
@@ -72,13 +75,17 @@ def callback(data):
 
         # grab the corners and get the correct order for them
         outer, _ = v.projectPoints(OUTER, rvec, tvec, MTX, DIST)
+        outer = np.float32(outer.reshape((4,2)))
         order = corner_order(outer)
-        impoints = outer[order].reshape((4,2))
+        impoints = outer[order]
 
         # undistort the image and put it in the message
         M = v.getPerspectiveTransform(impoints, DSTPTS)
         un = v.warpPerspective(im, M, IMSIZE)
         message.unperspective = bridge.cv2_to_imgmsg(un, encoding='bgr8')
+
+        if PUBLISH_UNDISTORT:
+            impub.publish(message.unperspective)
 
         # find board-frame coordinates in the right order, then
         # TODO: put them in the world frame and publish them
@@ -98,6 +105,8 @@ if __name__ == '__main__':
                         help='input Image topic')
     parser.add_argument('-o', '--out', required=True,
                         help='output BoardMessage topic')
+    parser.add_argument('-u', '--undistorted', default=None,
+                        help='output undistorted board Image topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE,
                         help='scale this much before corner-finding')
     parser.add_argument('--node-name', default='camera_processing')
@@ -113,9 +122,16 @@ if __name__ == '__main__':
     # set up the publisher
     pub = rospy.Publisher(board_topic, BoardMessage,
                           latch=True, queue_size=1)
+    PUBLISH_UNDISTORT = args.undistorted is not None
+    if PUBLISH_UNDISTORT:
+        impub = rospy.Publisher(args.undistorted, Image,
+                                latch=True, queue_size=1)
+
+    bridge = CvBridge()
 
     # create a camera listener node
     rospy.init_node(args.node_name)
     rospy.Subscriber(in_topic, Image, callback)
+    print 'Visual cortex ready!'
     rospy.spin()
 
