@@ -126,7 +126,7 @@ def cele():
 def callback(move):
     # check whether move is 'no move' or not
     if move.type == 0 or move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
-        print("Executing move " + move.type + ": pickup-putdown...")
+        print(sty.bld + "Executing move " + move.type + ":" + sty.clr + " pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
         strt = assign_arr(tuple(move.source.x, move.source.y, move.source.z))
         if move.type:
@@ -143,36 +143,37 @@ def callback(move):
         else:
             goto_image_pose()
     elif move.type == 2: # perturb request
-        print("Executing move 2: perturb...")
+        print(sty.bld + "Executing move 2:" + sty.clr + " perturb...")
         goto_image_pose()
         perturb()
     elif move.type == 3:
-        print("Executing move 3: goto default default image pose...")
+        print(sty.bld + "Executing move 3:" + sty.clr + " goto default default image pose...")
         goto_image_pose()
     elif move.type == 4:
-        print("Executing move 4: Victory! Time to celebrate!")
+        print(sty.bld + "Executing move 4:" + sty.clr + " Victory! Time to celebrate!")
         cele()
     else:
         print("SOMETHING TERRIBLE HAS HAPPENED!!!")
-    print("Finished executing move.")
+    print(sty.bld + "Finished executing move." + sty.clr)
 
 
 def print_tf(transform, id):
     """Given a tf transform and an associated id, prints the transform
     in an easily readable format"""
-    print("TF of " + id + ":\n" + "trans: " + str(transform[0]) + "\nrot: " + str(transform[1]))
+    print("TF of " + id + ":\n" + sty.bld + "trans: " + sty.clr + \
+        str(transform[0]) + sty.bld + "\nrot: " + sty.clr + str(transform[1]))
 
 
 def init_calib():
     global default_action_pose, default_image_pose, trash_bin
-    print("Initializing Baxter's Default Arm Positions:")
+    print(sty.bld + "Initializing Baxter's Default Arm Positions:" + sty.clr)
     while 1:
         while 1:
-            print("Please put Baxter's arms in the default ACTION pose.")
+            print("Please put Baxter's arms in the default " + sty.bld + "ACTION" + sty.clr + " pose.")
             raw_input("Press Enter to record the pose...")
             default_action_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
-            print_tf(default_action_pose[0], "Baxter's Gripper Arm, ACTION")
-            print_tf(default_action_pose[1], "Baxter's Camera Arm, ACTION")
+            print_tf(default_action_pose[0], "Baxter's Gripper Arm, " + sty.bld + "ACTION" + sty.clr)
+            print_tf(default_action_pose[1], "Baxter's Camera Arm, " + sty.bld + "ACTION" + sty.clr)
             # if 'check the angle of the shoulder':
             #     print("The the angle of the user defined gripper arm shoulder position is out of bounds.\n\
             #     Baxter will find an alternative pose...")
@@ -180,54 +181,60 @@ def init_calib():
             #     print("Moving Baxter into the new pose...")
             #     default_action_pose()
             #     rospy.sleep(0.5)
-            recal = raw_input("Recalibrate (y/n)?:")
+            recal = raw_input("Recalibrate " + sty.bld + "(y/n)" + sty.clr + "?:")
             if recal == 'n':
                 break
 
         while 1:
-            print("Please put Baxter's arms in the default IMAGING pose.")
+            print("Please put Baxter's arms in the default " + sty.bld + "IMAGING" + sty.clr + " pose.")
             raw_input("Press Enter to record the pose...")
             default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
-            print_tf(default_image_pose[0], "Baxter's Gripper Arm, IMAGING")
-            print_tf(default_image_pose[1], "Baxter's Camera Arm, IMAGING")
-            recal = raw_input("Recalibrate (y/n)?:")
+            print_tf(default_image_pose[0], "Baxter's Gripper Arm, " + sty.bld + "IMAGING" + sty.clr)
+            print_tf(default_image_pose[1], "Baxter's Camera Arm, " + sty.bld + "IMAGING" + sty.clr)
+            recal = raw_input("Recalibrate " + sty.bld + "(y/n)" + sty.clr + "?:")
             if recal == 'n':
                 break
 
         while 1: 
-            print("Please put Baxter's Gripper Arm in the default TRASH pose.")
+            print("Please put Baxter's Gripper Arm in the default " + sty.bld + "TRASH" + sty.clr + " pose.")
             raw_input("Press Enter to record the pose...")
             trash_bin = lookup_transform('right_hand')
-            print_tf(trash_bin, "Baxter's Gripper Arm, TRASH")
-            recal = raw_input("Recalibrate (y/n)?:")
+            print_tf(trash_bin, "Baxter's Gripper Arm, " + sty.bld + "TRASH" + sty.clr)
+            recal = raw_input("Recalibrate " + sty.bld + "(y/n)" + sty.clr + "?:")
             if recal == 'n':
                 break
 
         while 1:
-            test = raw_input("Would you like to goto a default pose (a/i/t/n)?")
+            test = raw_input("Would you like to goto a default pose " + sty.bld + "(a/i/t/n)" + sty.clr + "?:")
             if test == 'a':
                 print("Default ACTION pose...")
-                print_tf(default_action_pose[0], "Baxter's Gripper Arm, ACTION")
-                print_tf(default_action_pose[1], "Baxter's Camera Arm, ACTION")
+                print_tf(default_action_pose[0], "Baxter's Gripper Arm, " + sty.bld + "ACTION" + sty.clr)
+                print_tf(default_action_pose[1], "Baxter's Camera Arm, " + sty.bld + "ACTION" + sty.clr)
                 goto_action_pose()
             elif test == 'i':
                 print("Default IMAGE pose...")
-                print_tf(default_image_pose[0], "Baxter's Gripper Arm, IMAGING")
-                print_tf(default_image_pose[1], "Baxter's Camera Arm, IMAGING")
+                print_tf(default_image_pose[0], "Baxter's Gripper Arm, " + sty.bld + "IMAGING" + sty.clr)
+                print_tf(default_image_pose[1], "Baxter's Camera Arm, " + sty.bld + "IMAGING" + sty.clr)
                 goto_image_pose()
             elif test == 't':
                 print("Default TRASH pose...")
-                print_tf(trash_bin, "Baxter's Gripper Arm, TRASH")
+                print_tf(trash_bin, "Baxter's Gripper Arm, " + sty.bld + "TRASH" + sty.clr)
                 goto(trash_bin[0])
             elif test == 'n':
                 break
             else:
-                print(test + "is not a valid option! Please choose from (a/i/t/n).")
-        reinit = raw_input("Reinitialize Both Poses (y/n)?:")
+                print(test + "is not a valid option! Please choose from " + sty.bld + "(a/i/t/n)" + sty.clr + ".")
+        reinit = raw_input("Reinitialize Both Poses " + sty.bld + "(y/n)" + sty.clr + "?:")
         if reinit == 'n':
             break
-    print("Initialization Complete! \n Charging lasers... \n\
-        Ready to exterminate my inferior competition!")
+    print(sty.bld + "Initialization Complete! \n Charging lasers... \n\
+        Ready to exterminate my inferior competition!" + sty.clr)
+
+
+class sty:
+    bld = '\033[1m'
+    clr = '\033[0m'
+
 
 if __name__ == '__main__':
     # parse command-line arguments
