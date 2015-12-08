@@ -120,7 +120,7 @@ def perturb():
 def cele():
     """Baxter displays prowess over his mortal opponent with a magical celebration."""
     goto(default_image_pose[0][0])
-    goto(default_action_pose[1][0], left=1])
+    goto(default_action_pose[1][0], left=1)
 
 
 def callback(move):
