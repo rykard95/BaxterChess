@@ -151,7 +151,7 @@ def callback(move):
         print("Executing move 3: goto default default image pose...")
         goto_image_pose()
     elif move.type == 4:
-        print("Executing move 4: Victory, celebration!")
+        print("Executing move 4: Victory! Time to celebrate!")
         cele()
     else:
         print("SOMETHING TERRIBLE HAS HAPPENED!!!")
