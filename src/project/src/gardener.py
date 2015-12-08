@@ -1,5 +1,4 @@
 from scipy.io import loadmat
-from IPython import embed
 import matplotlib.pyplot as plt
 from numpy.random import randint
 from sklearn.ensemble import AdaBoostClassifier,\

@@ -1,26 +1,20 @@
+#! /usr/bin/python
 import chess.uci
-#import rospy
+import rospy
 from skimage import color
 from scipy.ndimage import imread
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.feature import hog
 import pickle
-#from sklearn.preprocessing import normalize
-#from IPython import embed
 import glob
+import argparse
+import cv_bridge
+import cv2 as v
 
-im = color.rgb2gray(imread('frame0000.jpg'))
-n = im.shape[0]
-brain = pickle.load(open('pickled_brain.p', 'rb'))
+from project.msg import BoardMessage, MoveMessage
 
-SQUARE_SIZE = 2.25 * 2.54/100.0
 PIXEL_SIZE = 256 #Read from images
-
-engine = chess.uci.popen_engine('/home/richard/Documents/stockfish-6-linux/Linux/stockfish_6_x64')
-engine.uci()
-board = chess.Board()
-prev_board = []
 
 square_to_location = {'A7': None, 'A2': None, 'A6': None, 'E5': None,\
                         'D7': None, 'B7': None, 'F1': None, 'B3': None,\
@@ -40,6 +34,11 @@ square_to_location = {'A7': None, 'A2': None, 'A6': None, 'E5': None,\
                         'H5': None, 'D6': None, 'D2': None, 'G2': None}
 
 piece_heights = {}
+ph = {'p':0.14, 'r':0.14, 'b':0.14, 'n':0.17, 'q':0.17, 'k':0.17}
+for key in ph:
+    piece_heights[key.upper()] = ph[key]
+    piece_heights[key] = ph[key]
+del ph
 PLAYING = None
 
 def create_ordering():
@@ -50,22 +49,24 @@ def create_ordering():
     return np.array(ordering)
 
 std_ordering = create_ordering()
-rvs_odering = std_ordering[::-1]
+rvs_ordering = std_ordering[::-1]
 
 def initialize(image):
     # Figure out which side Baxter is playing
-    global PLAYING, prev_board
+    global PLAYING, prev_board, ordering
     PLAYING = determine_initial_state(image)
     if PLAYING == "WHITE":
         prev_board = np.array([2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,\
                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
                                 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1])
+        ordering = std_ordering
     elif PLAYING == "BLACK":
         prev_board = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,\
                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
                                 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2])
+        ordering = std_ordering[::-1]
     elif PLAYING in ("wb", "bw"):
         PLAYING = None
 
@@ -85,20 +86,32 @@ def standardize_evidence(evidence):
         evidence.reverse()
     return evidence
 
+def squareid_to_coord(square):
+    rank = chess.rank_index(square)
+    file = chess.file_index(square)
+    
+    if PLAYING == 'BLACK':
+        rank = 7 - rank
+    elif PLAYING == 'WHITE':
+        file = 7 - file
+
+    return np.array([rank+0.5, file+0.5, 1])
+
+def get_squaremap(corners):
+    d1t2 = (corners[2] - corners[1])/8.0
+    d1t3 = (corners[3] - corners[1])/8.0
+    return np.vstack((d1t2,d1t3,corners[0])).T
+
 def update_locations(corners):
     """
     Put corners into a numpy array
     """
-    if PLAYING == "WHITE":
-        ordering = std_ordering
-    if PLAYING == "BLACK":
-        ordering = rvs_odering
-    d1t2 = (corners[2] - corners[1]).reshape(3,1)/8.0
-    d1t3 = (corners[3] - corners[1]).reshape(3,1)/8.0
-    x = np.hstack((d1t2,d1t3,corners[0].reshape((3,1))))
+    d1t2 = (corners[2] - corners[1])/8.0
+    d1t3 = (corners[3] - corners[1])/8.0
+    x = np.vstack((d1t2,d1t3,corners[0])).T
     p = np.ones((64,3))
     p[:,:2] = np.mgrid[0:8,0:8].T.reshape((-1,2)) + .5
-    y = np.dot(x,p.T).T
+    y = p.dot(x.T)
     for i in range(len(ordering)):
         square_to_location[ordering[i]] = y[i]
     
@@ -139,8 +152,9 @@ def compute_score(board, prob_table):
 def featurize(image):
     image = image[4:28, 4:28]
     #return np.append(image.flatten(), np.std(image))
-    return np.append(hog(image, orientations=8, pixels_per_cell=(8,8),\
-            cells_per_block=(1,1), visualise=False), np.std(image))
+    ret = np.append(hog(image, orientations=8, pixels_per_cell=(8,8),\
+           cells_per_block=(1,1), visualise=False), np.std(image)).reshape(1,-1)
+    return ret
 
 
 def detect_pieces(image):
@@ -149,6 +163,8 @@ def detect_pieces(image):
     pieces on the board
     """
     squares = standardize_evidence(split_image(image))
+    plt.imshow(squares[0],cmap=plt.cm.gray)
+    plt.pause(0.25)
     featurized = []
     i = 0
     for square in squares:
@@ -187,7 +203,7 @@ def most_prob_state(evidence, board):
     for i in range(len(boards)):
         boards[i].push(moves[i])
     boards.append(board.copy())
-    moves.append('No Move')
+    moves.append(False)
     probs = []
     for b in boards:
         probs.append(compute_score(b, evidence))
@@ -197,37 +213,95 @@ def most_prob_state(evidence, board):
     #Thresholding
     epsilon = 0.0
     print('Probability difference: %f' % abs(probs[ind[0]] - probs[ind[1]]))
+    print moves[ind[0]], moves[ind[1]]
     if not abs(probs[ind[0]] - probs[ind[1]]) >= epsilon:
         print("Not a big enough difference")
-        #Request Perturbation
-        return board, 'No Move'
+        return board, None
     return boards[ind[0]], moves[ind[0]]
 
+bridge = cv_bridge.CvBridge()
+
 def callback(data):
-    points, image = something(data) # TODO: Get data
+    global board
+
+    points = [data.topleft, data.topright, data.botleft, data.botright]
+    image = bridge.imgmsg_to_cv2(data.unperspective, 
+                                 desired_encoding='bgr8')
+    image = v.cvtColor(image, v.COLOR_BGR2GRAY)
     if PLAYING == None:
         initialize(image)
+        print 'We are playing as ', PLAYING
+        return
+
+    evidence = detect_pieces(image)
+    board, move = most_prob_state(evidence, board)
+
+    if move is None:
+        print 'No best board! Something went wrong.'
+        # request perturbation
+    elif move is False:
+        print 'No move was made.'
+        # don't do anything
     else:
-        update_locations(points)
-        update_state(image)
-        get_move(board)
-        #extra
-        send_move(coords)
-    pass
+        # get move from Stockfish & apply it to a board
+        engine.position(board)
+        reply = engine.go(movetime=500).bestmove
 
+        # find real-world start & end positions 
+        A = get_squaremap(points)
+        start = A.dot(squareid_to_coord(reply.from_square))
+        end = A.dot(squareid_to_coord(reply.to_square))
 
+        # if we've captured, first send a message saying to remove that piece
+        square_contents = board.piece_at(reply.to_square)
+        if square_contents != None:
+            msg = MoveMessage()
+            ofs = np.array([0, 0, piece_heights[square_contents]])
+            msg.source = msg.destination = make_point_message(end + ofs)
+            msg.type = 1
+            pub.publish(msg)
 
-# initialize(im)
-# b = board
-# for i in range(len(glob.glob('*.jpg'))):
-#     f = color.rgb2gray(imread('frame%04d.jpg' % i))
-#     evidence = detect_pieces(f)
-#     b,m = most_prob_state(evidence, b)
-    
-#     plt.imshow(f, cmap=plt.cm.gray)
-#     print(b)
-#     plt.pause(1)
+        # create the message
+        square_contents = board.piece_at(reply.from_square)
+        ofs = np.array([0, 0, piece_heights[square_contents]])
+        msg = MoveMessage()
+        msg.source = make_point_message(start + ofs)
+        msg.destination = make_point_message(end + ofs)
+        msg.type = 0
+        pub.publish(msg)
 
+        board.push(reply)
 
+def make_point_message(pt):
+    ret = Point()
+    ret.x, ret.y, ret.z = pt
+    return ret
+        
+if __name__ == '__main__':
+    desc = "ROS node that takes the Eye's BoardMessages and BRAINS!!"
+    parser = argparse.ArgumentParser(description = desc)
+    parser.add_argument('-i', '--input', 
+                        help='input BoardMessage topic')
+    parser.add_argument('-o', '--output',
+                        help='output MoveMessage topic')
+    parser.add_argument('-e', '--engine', default='src/stockfish',
+                        help='executable of engine to play with')
+    parser.add_argument('--node-name', default='brain')
+    parser.add_argument('-b', '--brain', default='src/pickled_brain.p')
+    args = parser.parse_args()
 
+    brain = pickle.load(open(args.brain, 'rb'))
+
+    rospy.init_node(args.node_name)
+
+    engine = chess.uci.popen_engine(args.engine)
+    engine.uci()
+    board = chess.Board()
+    prev_board = []
+
+    pub = rospy.Publisher(args.output, MoveMessage, latch=True, queue_size=10)
+
+    rospy.Subscriber(args.input, BoardMessage, callback)
+    print 'Frontal cortex ready!'
+    rospy.spin()
 

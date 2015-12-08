@@ -136,7 +136,7 @@ if __name__ == '__main__':
                         help='output drawChessboardPoints Image topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE,
                         help='scale this much before corner-finding')
-    parser.add_argument('--node-name', default='camera_processing')
+    parser.add_argument('--node-name', default='eye')
     args = parser.parse_args()
     board_topic = args.out
     in_topic = args.image
