@@ -119,3 +119,7 @@ def rarm_coord():
     trans = np.array(trans) + np.array([x,y,z])
     rot = np.array(rot) + np.array(rott)
     return trans/2, rot/2
+
+
+right_gripper.set_holding_force(1)
+right_gripper.set_moving_force(25)

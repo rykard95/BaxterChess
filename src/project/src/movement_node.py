@@ -1,25 +1,26 @@
 #! /usr/bin/env python
 from itertools import izip
-import sys
+import sys, argparse
+import numpy as np
 
 import rospy
 import cv2 as v
-import tf
-from geometry_msgs.msg import PoseStamped
+import tf, moveit_commander
+from baxter_interface import gripper as baxter_gripper
+import baxter_interface
 
-import moveit_commander
 from moveit_msgs.msg import (
     OrientationConstraint, Constraints, PositionConstraint )
-
-from baxter_interface import gripper as baxter_grip
-import baxter_interface
-from msg import sb_msg
-from msg import BoradMessage
+from geometry_msgs.msg import PoseStamped
+from project.msg import MoveMessage
+from project.msg import BoardMessage
 
 
 
 # the name of the world frame
 BASE_FRAME = 'base'
+
+# default poses
 
 # go 7cm above desired board positions, then down
 OFFSET = np.array([0,0, 7/100])
@@ -43,9 +44,9 @@ def assign_arr(xyz, arr=None):
     if has_w: arr[3] = xyz.w
     return arr
 
-def goto(arm=right_arm, trans, rot=np.array([0,-1,0,0])):
+def goto(trans, rot=np.array([0,-1,0,0]), left=False):
     planner = right_planner
-    if arm == left_arm:
+    if left:
         planner = left_planner
 
     goal = PoseStamped()
@@ -61,19 +62,11 @@ def goto(arm=right_arm, trans, rot=np.array([0,-1,0,0])):
 
     # go there
     planner.execute(plan)
-
-    # make sure we're really there
-    names = plan.joint_trajectory.joint_names
-    poses = plan.joint_trajectory.points[-1].positions
-    pose = dict(izip(names, poses))
-    arm.set_joint_positions(pose)
     rospy.sleep(0.5)
-    return pose
-
 
 
 def lookup_transform(name):
-    return tfl.lookupTransform(BASE_FRAME, frame, rospy.Time(0))
+    return tfl.lookupTransform(BASE_FRAME, name, rospy.Time(0))
 
 def grasp():
     grip.close(block=True)
@@ -95,29 +88,29 @@ def putdown(position):
     goto(position + OFFSET)
 
 
-def default_action_pos():
+def goto_action_pose():
     # TODO: put both arms in correct positions. TFs for each can be obtained from default_action_pose array.
-    right_goal = assign_arr(default_action_pose[0][0])
-    left_goal = assign_arr(default_action_pose[1][0])
+    right_goal = default_action_pose[0][0]
+    left_goal = default_action_pose[1][0]
+    goto(left_goal, left=1)
     goto(right_goal)
-    goto(left_arm, left_goal)
 
 
-def default_image_pos():
+def goto_image_pose():
     # TODO: put both arms in correct positions. TFs for each can be obtained from default_action_pose array.
-    right_goal = assign_arr(default_image_pose[0][0])
-    left_goal = assign_arr(default_image_pose[1][0])
+    right_goal = default_image_pose[0][0]
+    left_goal = default_image_pose[1][0]
     goto(right_goal)
-    goto(left_arm, left_goal)
+    goto(left_goal, left=1)
 
 
 def perturb():
     # TODO: move the camera arm every so slightly until checkerboard is in view.
+    return None
 
-
-def move_callback(move):
+def callback(move):
     # check whether move is 'no move' or not
-    if move.type == 0 || move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
+    if move.type == 0 or move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
         print("Executing move " + move.type + ": pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
         strt = assign_arr(move.source.translation)
@@ -125,17 +118,17 @@ def move_callback(move):
 
         #  put arms in action pose, pick up at strt, put down at dest,
         #  and return to the starting position
-        default_action_pos():
+        goto_action_pose()
         pickup(strt) 
         putdown(dest) 
         if move.type:
-            default_action_pos()
+            goto_action_pose()
         else:
-            default_image_pos()
+            goto_image_pose()
         print("Finished move!")
     elif move.type == 2: # perturb request
         print("Executing move 2: perturb...")
-        default_image_pos()
+        goto_image_pose()
         perturb()
         print("Finished move!")
     else:
@@ -146,94 +139,95 @@ def print_tf(transform, id):
     """Given a tf transform and an associated id, prints the transform
     in an easily readable format"""
     trans, rot = transform[0], transform[1]
-    print("TF of " + id + ":\n" + "trans: " + trans + "\nrot: " + rot)
+    print("TF of " + id + ":\n" + "trans: " + str(trans) + "\nrot: " + str(rot))
 
 
 def init_calib():
+    global default_action_pose, default_image_pose
     print("Initializing Baxter's Default Arm Positions:")
     while 1:
-        print("Please put Baxter's arms in the default ACTION pose.")
-        raw_input("Press Enter to record the pose...")
-        default_action_pose = lookup_transform('right_arm'), lookup_transform('left_arm')
-        print_tf(default_action_pose[0], "Baxter's Gripper Arm, User Defined: ")
-        print_tf(default_action_pose[1], "Baxter's Camera Arm, User Defined:")
-        # if 'check the angle of the shoulder':
-        #     print("The the angle of the user defined gripper arm shoulder position is out of bounds.\n\
-        #     Baxter will find an alternative pose...")
-        #     # find pose
-        #     print("Moving Baxter into the new pose...")
-        #     default_action_pose()
-        #     rospy.sleep(0.5)
-        recal = raw_input("Recalibrate (y/n)?:")
-        if recal == 'n':
-            break
+        while 1:
+            print("Please put Baxter's arms in the default ACTION pose.")
+            raw_input("Press Enter to record the pose...")
+            default_action_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
+            print_tf(default_action_pose[0], "Baxter's Gripper Arm, User Defined")
+            print_tf(default_action_pose[1], "Baxter's Camera Arm, User Defined")
+            # if 'check the angle of the shoulder':
+            #     print("The the angle of the user defined gripper arm shoulder position is out of bounds.\n\
+            #     Baxter will find an alternative pose...")
+            #     # find pose
+            #     print("Moving Baxter into the new pose...")
+            #     default_action_pose()
+            #     rospy.sleep(0.5)
+            recal = raw_input("Recalibrate (y/n)?:")
+            if recal == 'n':
+                break
 
-    while 1:
-        print("Please put Baxter's arms in the default IMAGING pose.")
-        raw_input("Press Enter to record the pose...")
-        default_image_pose = lookup_transform('right_arm'), lookup_transform('left_arm')
-        print_tf(default_iamge_pose[0], "Baxter's Gripper Arm")
-        print_tf(default_iamge_pose[1], "Baxter's Camera Arm")
-        recal = raw_input("Recalibrate (y/n)?:")
-        if recal == 'n':
-            break
+        while 1:
+            print("Please put Baxter's arms in the default IMAGING pose.")
+            raw_input("Press Enter to record the pose...")
+            default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
+            print_tf(default_image_pose[0], "Baxter's Gripper Arm, User Defined")
+            print_tf(default_image_pose[1], "Baxter's Camera Arm, User Defined")
+            recal = raw_input("Recalibrate (y/n)?:")
+            if recal == 'n':
+                break
 
-    print("Stand clear; testing default positions...")
-    print("Default ACTION pose...")
-    default_action_pose()
-    rospy.sleep(2.0)
-    print("Default IMAGE pose...")
-    default_image_pose()
-    rospy.sleep(2.0)
+        while 1:
+            test = raw_input("Would you like to goto a default pose (a/i/n)?")
+            if test == 'a':
+                print("Default ACTION pose...")
+                print_tf(default_action_pose[0], "Baxter's Gripper Arm, User Defined")
+                print_tf(default_action_pose[1], "Baxter's Camera Arm, User Defined")
+                goto_action_pose()
+            elif test == 'i':
+                print("Default IMAGE pose...")
+                print_tf(default_image_pose[0], "Baxter's Gripper Arm, User Defined")
+                print_tf(default_image_pose[1], "Baxter's Camera Arm, User Defined")
+                goto_image_pose()
+            elif test == 'n':
+                break
+            else:
+                print(test + "is not a valid option! Please choose from (a/i/n).")
+        reinit = raw_input("Reinitialize Both Poses (y/n)?:")
+        if reinit == 'n':
+            break
+    print("Initialization Complete!")
 
 if __name__ == '__main__':
-    global right_planner, right_arm
-    global left_planner, left_arm
-    global tfl, grip
-    global default_action_pose
-    global default_image_pose
-
-    
+    rospy.init_node('movement_node')
     # set up MoveIt
-    moveitcommander.roscpp_initialize(sys.argv)
+    moveit_commander.roscpp_initialize(sys.argv)
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
 
-    
-    # add the object boundaries to the scene
-    ubp = [0, 0, 0] # upper box position
-    ubd = [0, 0, 0] # '       ' dimension
-    lbp = [0, 0 ,0] # lower box position
-    lbd = [0, 0, 0] # '       ' dimesnion
-    scene.addBox('upper_box', ubd[0], ubd[1], ubd[2], ubp[0], ubp[1], ubp[2], wait=False)
-    scene.addBox('lower_box', lbd[0], lbd[1], lbd[2], lbp[0], lbp[1], lbp[2], wait=False)
-    scene.waitForSync()
-
-    
     # set planners
+    right_arm = baxter_interface.Limb('right')
+    left_arm = baxter_interface.Limb('left')
     left_planner = moveit_commander.MoveGroupCommander('left_arm')
-    left_planner.set_planner_id('RRTConnectkConfigDEfault')
-    left_planner.set_planning_time(10)
     right_planner = moveit_commander.MoveGroupCommander('right_arm')
-    right_planner.set_planner_id('RRTConnectkConfigDEfault')
-    right_planner.set_planning_time(10)
+    left_planner.set_planner_id('RRTConnectkConfigDefault')
+    left_planner.set_planning_time(5)
+    right_planner.set_planner_id('RRTConnectkConfigDefault')
+    right_planner.set_planning_time(20)
+    right_gripper = baxter_gripper.Gripper('right')
+    right_gripper.calibrate()
 
+    # add the object boundaries to the scene
+    # ubp = [0, 0, 0] # upper box position
+    # ubd = [0, 0, 0] # '       ' dimension
+    # lbp = [0, 0 ,0] # lower box position
+    # lbd = [0, 0, 0] # '       ' dimesnion
+    # scene.addBox('upper_box', ubd[0], ubd[1], ubd[2], ubp[0], ubp[1], ubp[2], wait=False)
+    # scene.addBox('lower_box', lbd[0], lbd[1], lbd[2], lbp[0], lbp[1], lbp[2], wait=False)
+    # scene.waitForSync()
 
     # parse command-line arguments
     desc = 'Node to handle movement commands and positioning'
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-m', '--move', required=True,
+    parser.add_argument('-m', '--move_topic', required=True,
                         help='move message topic')
     args = parser.parse_args()
-
-
-    # set up Baxter and his grippers
-    right_arm = baxter_interface.Limb('right')
-    left_arm = baxter_interface.Limb('left')
-
-    grip = baxter_grip.Gripper('right')
-    grip.calibrate()
-
 
     # set up TF
     tfl = tf.TransformListener()
@@ -244,7 +238,6 @@ if __name__ == '__main__':
 
 
     # create our node and its listeners and publishers
-    rospy.init_node('movement_node')
-    rospy.Subscriber(args.move_topic, sb_msg, move_callback)
+    rospy.Subscriber(args.move_topic, MoveMessage, callback)
     rospy.spin()
 
