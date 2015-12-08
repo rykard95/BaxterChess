@@ -59,7 +59,7 @@ def split_image(image):
     return squares
 
 def standardize_evidence(evidence):
-    if PLAYING == 'WHITE':
+    if PLAYING == 'BLACK':
         evidence.reverse()
     return evidence
 
