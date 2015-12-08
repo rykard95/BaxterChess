@@ -25,7 +25,7 @@ del ph
 
 PLAYING = None
 
-std_ordering = np.array(chess.SQUARES).reshape((8,8))[:,::-1].flatten()
+std_ordering = np.array(chess.SQUARES).reshape((8,8))[::-1,:].flatten()
 
 
 def initialize(image):
