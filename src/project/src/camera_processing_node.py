@@ -49,37 +49,41 @@ def find_chessboard_corners(image, scale=1):
 
     return found, corners
 
+def corner_order(corners, first_axis=1, second_axis=0):
+    order = corners[:,first_axis].argsort()
+    further_two = order[corners[order][:2,second_axis].argsort()]
+    closer_two = order[corners[order][2:,second_axis].argsort()]
+    return np.hstack([further_two, closer_two])
+
 def reorder_corners(corners):
-    corners = corners[corners[:,1].argsort()]
-    further_two = corners[:2,0].argsort()
-    closer_two = corners[2:,0].argsort() + 2
-    return corners[np.hstack([further_two, closer_two])]
+    return corners[corner_order(corners)]
 
 def callback(data):
     im = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
+    im = v.undistort(im, MTX, DIST)
 
     found, corners = find_chessboard_corners(im, SCALE)
 
     if found:
-        # rotation and translation of board relative to camera
-        _, rvec, tvec = v.solvePnP(OBJP, corners, MTX, None)
-        outer, _ = v.projectPoints(OUTER, rvec, tvec, MTX, None)
-        outer = np.float32(outer.reshape((4,2)))
-        outer = reorder_corners(outer)
-        M = v.getPerspectiveTransform(outer, DSTPTS)
-
-        un = v.warpPerspective(im, M, IMSIZE)
-
-        v.drawChessboardCorners(im, (7,7), corners, found)
-        v.imshow('im', im)
-        v.imshow('un', un)
-        v.waitKey(1)
-
         message = BoardMessage()
+
+        # rotation and translation of board relative to camera
+        _, rvec, tvec = v.solvePnP(OBJP, corners, MTX, DIST)
+
+        # grab the corners and get the correct order for them
+        outer, _ = v.projectPoints(OUTER, rvec, tvec, MTX, DIST)
+        order = corner_order(outer)
+        impoints = outer[order].reshape((4,2))
+
+        # undistort the image and put it in the message
+        M = v.getPerspectiveTransform(impoints, DSTPTS)
+        un = v.warpPerspective(im, M, IMSIZE)
         message.unperspective = bridge.cv2_to_imgmsg(un, encoding='bgr8')
 
-        # TODO: set the message's corners parameters
-
+        # find board-frame coordinates in the right order, then
+        # TODO: put them in the world frame and publish them
+        bdpoints = OUTER[order]
+        
         pub.publish(message)
 
 
