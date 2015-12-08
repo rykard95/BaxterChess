@@ -2,7 +2,7 @@
 import sys
 import rospy
 import moveit_commander
-from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint
+from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint, PlanningScene
 from geometry_msgs.msg import PoseStamped
 from baxter_interface import gripper as baxter_gripper
 import baxter_interface
@@ -10,8 +10,7 @@ import cv2
 import numpy as np
 import tf
 
-CLOSE_AMOUNT = 70.0
-TABLE_HEIGHT = 0.0
+CLOSE_AMOUNT = 100.0
 moveit_commander.roscpp_initialize(sys.argv)
 rospy.init_node('moveit_node')
 
@@ -28,6 +27,8 @@ right_planner.set_planning_time(20)
 right_gripper = baxter_gripper.Gripper('right')
 right_gripper.calibrate()
 listener = tf.TransformListener()
+
+OFFSET = np.array([0,0,0.07])
 
 def make_move(strt, dest):
     saved = rarm_coord()
@@ -67,16 +68,8 @@ def move(x=None,y=None,z=None, Q=None, right_planner=right_planner):
     right_planner.set_pose_target(goal)
     right_planner.set_start_state_to_current_state()
     right_plan = right_planner.plan()
-    # raw_input('Press ENTER if this movement is OK. ')
     right_planner.execute(right_plan)
-    #names = right_plan.joint_trajectory.joint_names
-    #positions = right_plan.joint_trajectory.points[-1].positions
-    #pose = {}
-    #for i in range(len(names)):
-    #    pose[names[i]] = positions[i]
-    #right_arm.set_joint_positions(pose)
     rospy.sleep(0.5)
-    return pose
 
 
 def grasp(right_gripper=right_gripper):
@@ -122,4 +115,4 @@ def rarm_coord():
 
 
 right_gripper.set_holding_force(1)
-right_gripper.set_moving_force(25)
+right_gripper.set_moving_force(50)
