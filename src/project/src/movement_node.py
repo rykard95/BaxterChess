@@ -2,6 +2,7 @@
 from itertools import izip
 import sys, argparse
 import numpy as np
+import random as rand
 
 import rospy
 import cv2 as v
@@ -20,11 +21,13 @@ from project.msg import BoardMessage
 # the name of the world frame
 BASE_FRAME = 'base'
 
-# default poses
+# perturb tolerances.
+PERTURB_TOLS = [0.1, 0.1, 0.1]
 
 # go 7cm above desired board positions, then down
 OFFSET = np.array([0,0, 7/100])
 
+CLOSE_AMOUNT = 100.0
 
 def assign_xyz(arr, xyz):
     xyz.x = arr[0]
@@ -89,7 +92,7 @@ def putdown(position):
 
 
 def goto_action_pose():
-    # TODO: put both arms in correct positions. TFs for each can be obtained from default_action_pose array.
+    """Position Baxter's arms in the default action pose."""
     right_goal = default_action_pose[0][0]
     left_goal = default_action_pose[1][0]
     goto(left_goal, left=1)
@@ -97,7 +100,7 @@ def goto_action_pose():
 
 
 def goto_image_pose():
-    # TODO: put both arms in correct positions. TFs for each can be obtained from default_action_pose array.
+    """Position Baxter's arms in the default imaging pose."""
     right_goal = default_image_pose[0][0]
     left_goal = default_image_pose[1][0]
     goto(right_goal)
@@ -105,8 +108,13 @@ def goto_image_pose():
 
 
 def perturb():
-    # TODO: move the camera arm every so slightly until checkerboard is in view.
-    return None
+    """Position the Camera Arm randomnly within current(x,y,z) +/- PERTURB_TOLS(0,1,2)."""
+    current_pose = lookup_transform('left_hand')
+    x = rand.uniform(-PERTURB_TOLS[0], PERTURB_TOLS[0]) 
+    y = rand.uniform(-PERTURB_TOLS[1], PERTURB_TOLS[1])
+    z = rand.uniform(-PERTURB_TOLS[2], PERTURB_TOLS[2])
+    goto(tuple(x,y,z), left=1)
+
 
 def callback(move):
     # check whether move is 'no move' or not
@@ -114,10 +122,12 @@ def callback(move):
         print("Executing move " + move.type + ": pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
         strt = assign_arr(move.source.translation)
-        dest = assign_arr(move.destination.translation)
-
+        if move.type:
+            dest = assign_arr(trash_bin[0])
+        else:
+            dest = assign_arr(move.destination.translation)
         #  put arms in action pose, pick up at strt, put down at dest,
-        #  and return to the starting position
+        #  and return to the imaging position
         goto_action_pose()
         pickup(strt) 
         putdown(dest) 
@@ -125,14 +135,16 @@ def callback(move):
             goto_action_pose()
         else:
             goto_image_pose()
-        print("Finished move!")
     elif move.type == 2: # perturb request
         print("Executing move 2: perturb...")
         goto_image_pose()
         perturb()
-        print("Finished move!")
+    elif move.type == 3:
+        print("Executing move 3: goto default default image pose...")
+        goto_image_pose()
     else:
         print("SOMETHING TERRIBLE HAS HAPPENED!!!")
+    print("Finished executing move.")
 
 
 def print_tf(transform, id):
@@ -143,15 +155,15 @@ def print_tf(transform, id):
 
 
 def init_calib():
-    global default_action_pose, default_image_pose
+    global default_action_pose, default_image_pose, trash_bin
     print("Initializing Baxter's Default Arm Positions:")
     while 1:
         while 1:
             print("Please put Baxter's arms in the default ACTION pose.")
             raw_input("Press Enter to record the pose...")
             default_action_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
-            print_tf(default_action_pose[0], "Baxter's Gripper Arm, User Defined")
-            print_tf(default_action_pose[1], "Baxter's Camera Arm, User Defined")
+            print_tf(default_action_pose[0], "Baxter's Gripper Arm, ACTION")
+            print_tf(default_action_pose[1], "Baxter's Camera Arm, ACTION")
             # if 'check the angle of the shoulder':
             #     print("The the angle of the user defined gripper arm shoulder position is out of bounds.\n\
             #     Baxter will find an alternative pose...")
@@ -167,34 +179,55 @@ def init_calib():
             print("Please put Baxter's arms in the default IMAGING pose.")
             raw_input("Press Enter to record the pose...")
             default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
-            print_tf(default_image_pose[0], "Baxter's Gripper Arm, User Defined")
-            print_tf(default_image_pose[1], "Baxter's Camera Arm, User Defined")
+            print_tf(default_image_pose[0], "Baxter's Gripper Arm, IMAGING")
+            print_tf(default_image_pose[1], "Baxter's Camera Arm, IMAGING")
+            recal = raw_input("Recalibrate (y/n)?:")
+            if recal == 'n':
+                break
+
+        while 1: 
+            print("Please put Baxter's Gripper Arm in the default TRASH pose.")
+            raw_input("Press Enter to record the pose...")
+            trash_bin = lookup_transform('right_hand')
+            print_tf(trash_bin, "Baxter's Gripper Arm, TRASH")
             recal = raw_input("Recalibrate (y/n)?:")
             if recal == 'n':
                 break
 
         while 1:
-            test = raw_input("Would you like to goto a default pose (a/i/n)?")
+            test = raw_input("Would you like to goto a default pose (a/i/t/n)?")
             if test == 'a':
                 print("Default ACTION pose...")
-                print_tf(default_action_pose[0], "Baxter's Gripper Arm, User Defined")
-                print_tf(default_action_pose[1], "Baxter's Camera Arm, User Defined")
+                print_tf(default_action_pose[0], "Baxter's Gripper Arm, ACTION")
+                print_tf(default_action_pose[1], "Baxter's Camera Arm, ACTION")
                 goto_action_pose()
             elif test == 'i':
                 print("Default IMAGE pose...")
-                print_tf(default_image_pose[0], "Baxter's Gripper Arm, User Defined")
-                print_tf(default_image_pose[1], "Baxter's Camera Arm, User Defined")
+                print_tf(default_image_pose[0], "Baxter's Gripper Arm, IMAGING")
+                print_tf(default_image_pose[1], "Baxter's Camera Arm, IMAGING")
                 goto_image_pose()
+            elif test == 't':
+                print("Default TRASH pose...")
+                print_tf(trash_bin, "Baxter's Gripper Arm, TRASH")
+                goto(trash_bin[0])
             elif test == 'n':
                 break
             else:
-                print(test + "is not a valid option! Please choose from (a/i/n).")
+                print(test + "is not a valid option! Please choose from (a/i/t/n).")
         reinit = raw_input("Reinitialize Both Poses (y/n)?:")
         if reinit == 'n':
             break
-    print("Initialization Complete!")
+    print("Initialization Complete! \n Charging lasers... \n\
+        Ready to exterminate my inferior competition!")
 
 if __name__ == '__main__':
+    # parse command-line arguments
+    desc = 'Node to handle movement commands and positioning'
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('-m', '--move_topic', required=True,
+                        help='move message topic')
+    args = parser.parse_args()
+
     rospy.init_node('movement_node')
     # set up MoveIt
     moveit_commander.roscpp_initialize(sys.argv)
@@ -221,13 +254,6 @@ if __name__ == '__main__':
     # scene.addBox('upper_box', ubd[0], ubd[1], ubd[2], ubp[0], ubp[1], ubp[2], wait=False)
     # scene.addBox('lower_box', lbd[0], lbd[1], lbd[2], lbp[0], lbp[1], lbp[2], wait=False)
     # scene.waitForSync()
-
-    # parse command-line arguments
-    desc = 'Node to handle movement commands and positioning'
-    parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-m', '--move_topic', required=True,
-                        help='move message topic')
-    args = parser.parse_args()
 
     # set up TF
     tfl = tf.TransformListener()
