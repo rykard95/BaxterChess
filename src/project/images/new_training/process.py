@@ -4,7 +4,7 @@ from os import listdir
 import numpy as np
 from skimage import color, exposure
 from scipy.io import savemat
-from IPython import embed
+#from IPython import embed
 from skimage.feature import hog
 from scipy import ndimage
 

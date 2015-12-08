@@ -91,6 +91,7 @@ def callback(data):
         M = v.getPerspectiveTransform(outer[order], DSTPTS)
         un = v.warpPerspective(im, M, IMSIZE)
         message.unperspective = bridge.cv2_to_imgmsg(un, encoding='bgr8')
+        message.unperspective.header.stamp = rospy.Time.now()
 
         if PUBLISH_UNDISTORT:
             impub.publish(message.unperspective)
@@ -116,7 +117,7 @@ def callback(data):
             setattr(message, fields[i], p)
             print [p.x, p.y, p.z]
 
-    pub.publish(message)
+        pub.publish(message)
 
 
 if __name__ == '__main__':

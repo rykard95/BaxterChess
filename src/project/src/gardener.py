@@ -41,7 +41,7 @@ pred_prob = fc.predict_proba(test_images)
 # clf.fit(train_images, train_labels)
 # pred = clf.predict(test_images)
 acc = (pred == test_labels).astype(int)
-print("The accuracy is " + str(sum(acc)/len(acc)))
+print("The accuracy is " + str(float(sum(acc))/len(acc)))
 
 ind = np.where(acc == 0)
 print("predicted errors: " + str(pred[ind]))
@@ -51,7 +51,7 @@ print("probabilities: " + str(pred_prob[ind]))
 print("Recalling training set")
 pred = fc.predict(train_images)
 acc = (pred == train_labels).astype(int)
-print("The accuracy is " + str(sum(acc)/len(acc)))
+print("The accuracy is " + str(float(sum(acc))/len(acc)))
 
 # imgs = imgs[ind]
 

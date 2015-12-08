@@ -3,7 +3,6 @@ import os
 import numpy as np
 import cv2 as v
 import argparse
-from IPython import embed
 from scipy.misc import imsave
 
 def load_camera_calibration(calib):

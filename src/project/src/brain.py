@@ -16,40 +16,16 @@ from project.msg import BoardMessage, MoveMessage
 
 PIXEL_SIZE = 256 #Read from images
 
-square_to_location = {'A7': None, 'A2': None, 'A6': None, 'E5': None,\
-                        'D7': None, 'B7': None, 'F1': None, 'B3': None,\
-                        'B5': None, 'H1': None, 'H4': None, 'B6': None,\
-                        'F3': None, 'F4': None, 'B2': None, 'C7': None,\
-                        'C2': None, 'F2': None, 'E2': None, 'A3': None,\
-                        'A5': None, 'G8': None, 'E6': None, 'C8': None,\
-                        'H3': None, 'E8': None, 'E7': None, 'G7': None,\
-                        'F6': None, 'G1': None, 'D1': None, 'G3': None,\
-                        'F8': None, 'H8': None, 'F5': None, 'D5': None,\
-                        'E4': None, 'H2': None, 'H7': None, 'B4': None,\
-                        'G5': None, 'B8': None, 'C5': None, 'G4': None,\
-                        'D4': None, 'F7': None, 'C3': None, 'E1': None,\
-                        'D8': None, 'C4': None, 'C6': None, 'A1': None,\
-                        'G6': None, 'H6': None, 'A8': None, 'E3': None,\
-                        'C1': None, 'D3': None, 'B1': None, 'A4': None,\
-                        'H5': None, 'D6': None, 'D2': None, 'G2': None}
-
 piece_heights = {}
 ph = {'p':0.14, 'r':0.14, 'b':0.14, 'n':0.17, 'q':0.17, 'k':0.17}
 for key in ph:
     piece_heights[key.upper()] = ph[key]
     piece_heights[key] = ph[key]
 del ph
+
 PLAYING = None
 
-def create_ordering():
-    ordering = []
-    for j in range(8,0,-1):
-        for i in "ABCDEFGH":
-            ordering.append(i+str(j))
-    return np.array(ordering)
-
-std_ordering = create_ordering()
-rvs_ordering = std_ordering[::-1]
+std_ordering = np.array(chess.SQUARES[::-1])
 
 def initialize(image):
     # Figure out which side Baxter is playing
@@ -82,7 +58,7 @@ def split_image(image):
     return squares
 
 def standardize_evidence(evidence):
-    if PLAYING == "BLACK":
+    if PLAYING == 'WHITE':
         evidence.reverse()
     return evidence
 
@@ -102,19 +78,6 @@ def get_squaremap(corners):
     d1t3 = (corners[3] - corners[1])/8.0
     return np.vstack((d1t2,d1t3,corners[0])).T
 
-def update_locations(corners):
-    """
-    Put corners into a numpy array
-    """
-    d1t2 = (corners[2] - corners[1])/8.0
-    d1t3 = (corners[3] - corners[1])/8.0
-    x = np.vstack((d1t2,d1t3,corners[0])).T
-    p = np.ones((64,3))
-    p[:,:2] = np.mgrid[0:8,0:8].T.reshape((-1,2)) + .5
-    y = p.dot(x.T)
-    for i in range(len(ordering)):
-        square_to_location[ordering[i]] = y[i]
-    
 def determine_initial_state(image):
     evidence = detect_pieces(image)
     states = {"WHITE":np.concatenate([np.ones(16) + 1, np.zeros(32), np.ones(16)]),\
@@ -145,7 +108,7 @@ def compute_score(board, prob_table):
         board = board_to_mask(board)
     prob = 0
     for i in range(len(board)):
-        a = prob_table[board[i]][i]
+        a = prob_table[board[i],i]
         prob += np.log(a)
     return prob
 
@@ -163,8 +126,6 @@ def detect_pieces(image):
     pieces on the board
     """
     squares = standardize_evidence(split_image(image))
-    plt.imshow(squares[0],cmap=plt.cm.gray)
-    plt.pause(0.25)
     featurized = []
     i = 0
     for square in squares:
@@ -177,14 +138,21 @@ def detect_pieces(image):
     cur_board = np.hstack(cur_board)
     return cur_board
 
+def detect_pieces(image):
+    squares = standardize_evidence(split_image(image))
+    featurized = np.zeros((64,73))
+    for i in xrange(64):
+        featurized[i,:] = featurize(squares[i])
+    proba = brain.predict_proba(featurized)
+    return proba.T
+
 def board_to_mask(board):
     """
     Turns a Chess.Board into an array of
     empty, white, black array
     """
-    mask = []
+    mask = np.zeros((64,))
     for square in std_ordering:
-        square =  getattr(chess, square)
         piece = board.piece_at(square)
         if piece == None:
             piece = 0
@@ -192,10 +160,38 @@ def board_to_mask(board):
             piece = 1
         else:
             piece = 2
-        mask.append(piece)
-    return np.array(mask)
+        mask[square] = piece
+    return mask
 
+minf = float('-inf')
 def most_prob_state(evidence, board):
+    board = board.copy()
+    biggest = False, compute_score(board, evidence)
+    second = None, minf
+    for move in board.legal_moves:
+        board.push(move)
+        prob = compute_score(board, evidence)
+        if prob > biggest[1]:
+            second = biggest
+            biggest = move, prob
+        elif prob > second[1]:
+            second = move, prob
+        board.pop()
+
+    print biggest, second
+
+    epsilon = 0.1
+    if not biggest[1] - second[1] >= epsilon:
+        print 'Not a big enough difference'
+        return board, None
+    if biggest[0] is False:
+        return board, False
+    board.push(biggest[0])
+    return board, biggest[0]
+            
+        
+
+def most_prob_state_old(evidence, board):
     #apppend no move and save prev_move
     #No move logic
     moves = list(board.legal_moves)
@@ -210,6 +206,7 @@ def most_prob_state(evidence, board):
     probs = np.array(probs)
     ind = np.argsort(-probs)
     print(probs[ind[0]], probs[ind[1]])
+
     #Thresholding
     epsilon = 0.0
     print('Probability difference: %f' % abs(probs[ind[0]] - probs[ind[1]]))
@@ -221,10 +218,19 @@ def most_prob_state(evidence, board):
 
 bridge = cv_bridge.CvBridge()
 
+def unmake_point_message(pt):
+    return np.array([pt.x, pt.y, pt.z])
+
 def callback(data):
     global board
 
+    since = rospy.Time.now() - data.unperspective.header.stamp
+    print since.to_sec()
+    if since.to_sec() > 0.5:
+        return
+
     points = [data.topleft, data.topright, data.botleft, data.botright]
+    points = map(unmake_point_message, points)
     image = bridge.imgmsg_to_cv2(data.unperspective, 
                                  desired_encoding='bgr8')
     image = v.cvtColor(image, v.COLOR_BGR2GRAY)
@@ -235,6 +241,8 @@ def callback(data):
 
     evidence = detect_pieces(image)
     board, move = most_prob_state(evidence, board)
+    print board
+    return
 
     if move is None:
         print 'No best board! Something went wrong.'
@@ -246,6 +254,7 @@ def callback(data):
         # get move from Stockfish & apply it to a board
         engine.position(board)
         reply = engine.go(movetime=500).bestmove
+
 
         # find real-world start & end positions 
         A = get_squaremap(points)
@@ -271,6 +280,7 @@ def callback(data):
         pub.publish(msg)
 
         board.push(reply)
+
 
 def make_point_message(pt):
     ret = Point()
