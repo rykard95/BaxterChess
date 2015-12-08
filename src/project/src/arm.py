@@ -13,8 +13,7 @@ import baxter_interface
 from moveit_msgs.msg import (
     OrientationConstraint, Constraints, PositionConstraint )
 from geometry_msgs.msg import PoseStamped
-from project.msg import MoveMessage
-from project.msg import BoardMessage
+from project.msg import *
 
 
 
@@ -161,8 +160,7 @@ def callback(move):
 def print_tf(transform, id):
     """Given a tf transform and an associated id, prints the transform
     in an easily readable format"""
-    trans, rot = transform[0], transform[1]
-    print("TF of " + id + ":\n" + "trans: " + str(trans) + "\nrot: " + str(rot))
+    print("TF of " + id + ":\n" + "trans: " + str(transform[0]) + "\nrot: " + str(transform[1]))
 
 
 def init_calib():
@@ -271,10 +269,8 @@ if __name__ == '__main__':
     # set up TF
     tfl = tf.TransformListener()
 
-    
     # initialzie baxter's safe arm positions
     init_calib()
-
 
     # create our node and its listeners and publishers
     rospy.Subscriber(args.move_topic, MoveMessage, callback)
