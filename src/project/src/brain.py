@@ -25,7 +25,8 @@ del ph
 
 PLAYING = None
 
-std_ordering = np.array(chess.SQUARES[::-1])
+std_ordering = np.array(chess.SQUARES).reshape((8,8))[::-1,:].flatten()
+
 
 def initialize(image):
     # Figure out which side Baxter is playing
@@ -58,7 +59,7 @@ def split_image(image):
     return squares
 
 def standardize_evidence(evidence):
-    if PLAYING == 'WHITE':
+    if PLAYING == 'BLACK':
         evidence.reverse()
     return evidence
 
@@ -152,7 +153,7 @@ def board_to_mask(board):
     empty, white, black array
     """
     mask = np.zeros((64,))
-    for square in std_ordering:
+    for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece == None:
             piece = 0
@@ -160,7 +161,7 @@ def board_to_mask(board):
             piece = 1
         else:
             piece = 2
-        mask[square] = piece
+        mask[std_ordering[square]] = piece
     return mask
 
 minf = float('-inf')
