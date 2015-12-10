@@ -243,6 +243,15 @@ def callback(data):
     evidence = detect_pieces(image)
     board, move = most_prob_state(evidence, board)
     print board
+
+    if board.is_game_over():
+        print '## GAME OVER, HUMAN!'
+        rospy.signal_shutdown('Because the game is over')
+
+    if board.turn == (PLAYING == 'WHITE'):
+        engine.position(board)
+        reply = engine.go(movetime=500).bestmove
+        print '## {}'.format(board.san(reply))
     return
 
     if move is None:
