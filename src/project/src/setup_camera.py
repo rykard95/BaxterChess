@@ -1,6 +1,6 @@
 #! /usr/bin/python
 import argparse
-from baxter_interface import camera as baxter_cam
+from baxter_interface.camera import *
 
 
 if __name__ == '__main__':
@@ -14,12 +14,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     resolution = tuple(map(int, args.resolution.split('x')))
-    balance = map(int, args.balance.split(','))
+    br, bg, bb = map(int, args.balance.split(','))
+    x = args.exposure
+    g = args.gain
 
-    c = baxter_cam.CameraController('left_hand_camera')
-    c.resolution = resolution
-    if args.exposure != -1: c.exposure = args.exposure
-    if args.gain != -1: c.gain = args.gain
-    if balance[0] != -1: c.white_balance_red = balance[0]
-    if balance[1] != -1: c.white_balance_green = balance[1]
-    if balance[2] != -1: c.white_balance_blue = balance[2]
+    c = CameraController('left_hand_camera')
+    if resolution in CameraController.MODES:
+        c._settings.width, c._settings.height = resolution
+
+    def set_control_if_in(cnt, min, max, val):
+        if val >= min and val <= max:
+            c._set_control_value(cnt, val)
+    set_control_if_in(CameraControl.CAMERA_CONTROL_EXPOSURE, 0, 100, x)
+    set_control_if_in(CameraControl.CAMERA_CONTROL_GAIN, 0, 79, g)
+    set_control_if_in(CameraControl.CAMERA_CONTROL_WHITE_BALANCE_R, 0, 4095, br)
+    set_control_if_in(CameraControl.CAMERA_CONTROL_WHITE_BALANCE_R, 0, 4095, bg)
+    set_control_if_in(CameraControl.CAMERA_CONTROL_WHITE_BALANCE_R, 0, 4095, bb)
+
+    if c._open: c.close()
+    c.open()
+
+
