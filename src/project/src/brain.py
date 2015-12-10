@@ -298,21 +298,20 @@ def make_point_message(pt):
     return ret
         
 if __name__ == '__main__':
+    rospy.init_node('brain')
+
     desc = "ROS node that takes the Eye's BoardMessages and BRAINS!!"
     parser = argparse.ArgumentParser(description = desc)
     parser.add_argument('-i', '--input', 
                         help='input BoardMessage topic')
     parser.add_argument('-o', '--output',
                         help='output MoveMessage topic')
-    parser.add_argument('-e', '--engine', default='src/stockfish',
+    parser.add_argument('-e', '--engine', default='stockfish',
                         help='executable of engine to play with')
-    parser.add_argument('--node-name', default='brain')
-    parser.add_argument('-b', '--brain', default='src/pickled_brain.p')
-    args = parser.parse_args()
+    parser.add_argument('-b', '--brain', default='pickled_brain.p')
+    args = parser.parse_args(rospy.myargv()[1:])
 
     brain = pickle.load(open(args.brain, 'rb'))
-
-    rospy.init_node(args.node_name)
 
     engine = chess.uci.popen_engine(args.engine)
     engine.uci()

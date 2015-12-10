@@ -238,14 +238,15 @@ class sty:
 
 
 if __name__ == '__main__':
+    rospy.init_node('arm')
+
     # parse command-line arguments
     desc = 'Node to handle movement commands and positioning'
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-m', '--move_topic', required=True,
                         help='move message topic')
-    args = parser.parse_args()
+    args = parser.parse_args(rospy.myargv()[1:])
 
-    rospy.init_node('movement_node')
     # set up MoveIt
     moveit_commander.roscpp_initialize(sys.argv)
     robot = moveit_commander.RobotCommander()

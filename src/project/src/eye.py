@@ -122,6 +122,7 @@ def callback(data):
 
 
 if __name__ == '__main__':
+    rospy.init_node('eye')
 
     desc = 'ROS node that reads the camera, publishes the board TF, ' \
     	'and classifies squares'
@@ -138,12 +139,9 @@ if __name__ == '__main__':
                         help='output drawChessboardPoints Image topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE,
                         help='scale this much before corner-finding')
-    parser.add_argument('--node-name', default='eye')
-    args = parser.parse_args()
+    args = parser.parse_args(rospy.myargv()[1:])
     board_topic = args.out
     in_topic = args.image
-
-    rospy.init_node(args.node_name)
 
     # get the camera calibration parameters
     params = np.load(args.calib)
