@@ -1,0 +1,5 @@
+<launch>
+<include file="$(find project)/launch/eye"/>
+<include file="$(find project)/launch/brain"/>
+<include file="$(find project)/launch/arm"/>
+</launch>

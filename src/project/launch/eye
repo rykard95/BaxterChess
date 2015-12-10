@@ -1,0 +1,9 @@
+<launch>
+    <node name='eye' pkg='project' type='eye.py' output='screen'
+          args="-c $(find project)/images/L/.calibration-parameters.npz -o /optic/nerve -u /optic/unperspective --boardpoints /optic/boardpoints"/>
+    <node name='eye_unperspective_view' pkg='image_view' type='image_view'
+          args="image:=/optic/unperspective"/>
+    <node name='eye_boardpoints_view' pkg='image_view' type='image_view'
+          args="image:=/optic/boardpoints"/>
+</launch>
+

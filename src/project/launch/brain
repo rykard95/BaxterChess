@@ -1,0 +1,4 @@
+<launch>
+    <node name='brain' pkg='project' type='brain.py' output='screen'
+          args="-i /optic/nerve -o /brainstem -e $(find project)/src/stockfish -b $(find project)/src/pickled_brain.p"/>
+</launch>
