@@ -251,6 +251,10 @@ if __name__ == '__main__':
     moveit_commander.roscpp_initialize(sys.argv)
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
+    scene_publisher = rospy.Publisher(
+                                    '/move_group/display_planned_path',
+                                    moveit_msgs.msg.PlanningScene)
+    rospy.sleep(10)
 
     # set planners
     right_arm = baxter_interface.Limb('right')
