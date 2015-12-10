@@ -1,3 +1,4 @@
+#! /usr/bin/python
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
 from numpy.random import randint
@@ -20,12 +21,17 @@ train_labels = data['train_labels'].flatten()
 test_images = data['test_images']
 test_labels = data['test_labels'].flatten()
 
-imgs = data['imgs']
+ntests = test_images.shape[0] / 3
+train_images = np.vstack([train_images, test_images[:ntests]])
+train_labels = np.hstack([train_labels, test_labels[:ntests]])
+test_images = test_images[ntests:]
+test_labels = test_labels[ntests:]
+
 # 250
 print("Planting trees!\n")
-# bdt = AdaBoostClassifier(DecisionTreeClassifier(max_depth=4),\
-#             n_estimators=200, learning_rate=0.5)
-fc = RandomForestClassifier(n_estimators=300, bootstrap=True)
+fc = AdaBoostClassifier(DecisionTreeClassifier(max_depth=4),
+                        n_estimators=200, learning_rate=0.5)
+# fc = RandomForestClassifier(n_estimators=500, bootstrap=True)
 
 print("Growing trees!\n")
 #bdt.fit(train_images, train_labels)

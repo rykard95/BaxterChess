@@ -112,7 +112,7 @@ if __name__ == '__main__':
             # v.cornerSubPix(bw, corners, (11,11), (-1,-1), crit)
 
             # find the perspective transform
-            size = 512
+            size = 256
             pts1, pts2 = getChessboardOutsideCorners(corners, size)
             M = v.getPerspectiveTransform(pts1, pts2)
             unwarped = v.warpPerspective(bw, M, (size,size))

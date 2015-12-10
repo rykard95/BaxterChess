@@ -128,7 +128,7 @@ def cele():
 def callback(move):
     # check whether move is 'no move' or not
     if move.type == 0 or move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
-        print(sty.bld + "Executing move " + move.type + ":" + sty.clr + " pickup-putdown...")
+        print(sty.kw + "Executing move " + move.type + ":" + sty.clr + " pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
         strt = assign_arr(tuple(move.source.x, move.source.y, move.source.z))
         if move.type:
@@ -145,50 +145,55 @@ def callback(move):
         else:
             goto_image_pose()
     elif move.type == 2: # perturb request
-        print(sty.bld + "Executing move 2:" + sty.clr + " perturb...")
+        print(sty.kw + "Executing move 2:" + sty.clr + " perturb...")
         goto_image_pose()
         perturb()
     elif move.type == 3:
-        print(sty.bld + "Executing move 3:" + sty.clr + " goto default default image pose...")
+        print(sty.kw + "Executing move 3:" + sty.clr + " goto default default image pose...")
         goto_image_pose()
     elif move.type == 4:
-        print(sty.bld + "Executing move 4:" + sty.clr + " Victory! Time to celebrate!")
+        print(sty.kw + "Executing move 4:" + sty.clr + " Victory! Time to celebrate!")
         cele()
     else:
         print(sty.er + "SOMETHING TERRIBLE HAS HAPPENED!!!" + sty.clr)
-    print(sty.bld + "Finished executing move." + sty.clr)
+    print(sty.fin + "Finished executing move." + sty.clr)
 
 
 def print_tf(transform, id):
     """Given a tf transform and an associated id, prints the transform
     in an easily readable format"""
-    print("TF of " + id + ":\n" + sty.bld + "trans: " + sty.clr + \
+    print(sty.bld + "TF of " + id + ":\n" + sty.bld + "trans: " + sty.clr + \
         str(transform[0]) + sty.bld + "\nrot: " + sty.clr + str(transform[1]))
 
 
 def print_pose(pose):
     if pose == trash_bin:
-        print_tf(trash_bin, "Baxter's Gripper Arm, " + sty.bld + "TRASH" + sty.clr)
+        print_tf(trash_bin, sty.clr + "Baxter's " + sty.kw + "Gripper Arm, TRASH" + sty.clr)
+    elif pose == default_action_pose:
+        print_tf(pose[0], sty.clr + "Baxter's " + sty.kw + "Gripper Arm, ACTION" + sty.clr)
+        print_tf(pose[1], sty.clr + "Baxter's " + sty.kw + "Camera Arm, ACTION" + sty.clr)
+    elif pose == default_image_pose:
+        print_tf(pose[0], sty.clr + "Baxter's " + sty.kw + "Gripper Arm, IMAGING" + sty.clr)
+        print_tf(pose[1], sty.clr + "Baxter's " + sty.kw + "Camera Arm, IMAGING" + sty.clr)
     else:
-        print_tf(pose[0], "Baxter's Gripper Arm, " + sty.bld + "ACTION" + sty.clr)
-        print_tf(pose[1], "Baxter's Camera Arm, " + sty.bld + "ACTION" + sty.clr)
+        print(sty.er + "Not a default pose!")
 
 
 def init_calib(def_poses_file):
     global default_action_pose, default_image_pose, trash_bin
 
-    print(sty.bld + "Initializing Baxter's Default Arm Positions:" + sty.clr)
-    f = open(def_poses_file, 'r+b')
+    print(sty.st + "Initializing Baxter's Default Arm Positions:" + sty.clr)
+    f = open(def_poses_file, 'rb')
     def_poses_arr = pickle.load(f)
     default_action_pose, default_image_pose, trash_bin = def_poses_arr[0], def_poses_arr[1], def_poses_arr[2]
 
-    view = raw_input("Would you like to view the current default poses in " + def_poses_file + "?" + sty.yn)
+    view = raw_input("Would you like to view the current default poses in " + sty.kw + def_poses_file + sty.clr + "?" + sty.yn)
     if view == 'y':
         print_pose(default_action_pose)
         print_pose(default_image_pose)
         print_pose(trash_bin)
 
-    test = raw_input("Test the default poses?" + sty.yn)
+    test = raw_input("Test current the default poses?" + sty.yn)
     if test == 'y':
         def_poses_test()
 
@@ -197,10 +202,10 @@ def init_calib(def_poses_file):
     if new_init == 'y':
         done = True
 
-    while !done:
+    while not done:
         while 1:
-            print("Please put Baxter's arms in the default " + sty.bld + "ACTION" + sty.clr + " pose.")
-            raw_input("Press Enter to record the pose...")
+            print("Please put Baxter's arms in the default " + sty.kw + "ACTION" + sty.clr + " pose.")
+            raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
             default_action_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
             print_pose(default_action_pose)
             # if 'check the angle of the shoulder':
@@ -212,64 +217,66 @@ def init_calib(def_poses_file):
             #     rospy.sleep(0.5)
             recal = raw_input("Recalibrate?" + sty.yn)
             if recal == 'n':
-                def_poses_arr[0] = default_action_pose
                 break
 
         while 1:
-            print("Please put Baxter's arms in the default " + sty.bld + "IMAGING" + sty.clr + " pose.")
-            raw_input("Press Enter to record the pose...")
+            print("Please put Baxter's arms in the default " + sty.kw + "IMAGING" + sty.clr + " pose.")
+            raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
             default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
             print_pose(default_image_pose)
             recal = raw_input("Recalibrate?" + sty.yn)
             if recal == 'n':
-                def_poses_arr[1] = default_image_pose
                 break
 
         while 1: 
-            print("Please put Baxter's Gripper Arm in the default " + sty.bld + "TRASH" + sty.clr + " pose.")
-            raw_input("Press Enter to record the pose...")
+            print("Please put Baxter's Gripper Arm in the default " + sty.kw + "TRASH" + sty.clr + " pose.")
+            raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
             trash_bin = lookup_transform('right_hand')
             print_pose(trash_bin)
             recal = raw_input("Recalibrate?" + sty.yn)
             if recal == 'n':
-                def_poses_arr[2] = trash_bin
                 break
 
         def_poses_test()
         reinit = raw_input("Reinitialize All Poses?" + sty.yn)
         if reinit == 'n':
+            def_poses_arr[0] = default_action_pose
+            def_poses_arr[1] = default_image_pose
+            def_poses_arr[2] = trash_bin
             break
-    pickle.dump(def_poses_arr, f)      
     f.close()
-    print(sty.bld + "Initialization Complete! \n Charging lasers... \n\
-        Ready to exterminate my inferior competition!" + sty.clr)
+    pickle.dump(def_poses_arr, open(def_poses_file, 'wb')) 
+
+    print(sty.fin + "Initialization Complete!" + sty.kw + "\nCharging lasers..."
+        +"Ready to exterminate my inferior competition!" + sty.clr)
 
 def def_poses_test():
     while 1:
-        test = raw_input("Would you like to goto a default pose?" + sty.bld + "[a/i/t/n]" + sty.clr + ":")
+        test = raw_input("Would you like to goto a default pose?" + sty.bld + " [a/i/t/n]" + sty.clr + ":")
         if test == 'a':
-            print("Default ACTION pose...")
             print_pose(default_action_pose)
             goto_action_pose()
         elif test == 'i':
-            print("Default IMAGE pose...")
             print_pose(default_image_pose)
             goto_image_pose()
         elif test == 't':
-            print("Default TRASH pose...")
             print_pose(trash_bin)
             goto(trash_bin[0])
         elif test == 'n':
             break
         else:
-            print(sty.er + test + " is not a valid option! Please choose from " + sty.bld + "[a/i/t/n]" + sty.clr + ".")
+            print(sty.er + test + " is not a valid option! Please choose from " + sty.bld + " [a/i/t/n]" + sty.clr + ".")
 
 
 class sty:
     clr = '\033[0m'
     bld = clr + '\033[1m'
-    er = clr + '\033[37m' + '\033[41m'
-    yn = bld + "[y/n]" + clr + ":"
+    er = bld + '\033[37m' + '\033[41m'
+    yn = bld + " [y/n]" + clr + ":"
+    kw = bld + '\033[36m'
+    st = bld + '\033[35m'
+    fin = bld + '\033[32m' 
+    blk = bld + '\033[5m'
 
 
 if __name__ == '__main__':
@@ -280,17 +287,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-m', '--move_topic', required=True,
                         help='move message topic')
-    parser.add_argument('-f', '--def_poses_file', default='def_poses.p')
+    parser.add_argument('-f', '--def_poses_file', default='def_poses.txt')
     args = parser.parse_args(rospy.myargv()[1:])
 
     # set up MoveIt
     moveit_commander.roscpp_initialize(sys.argv)
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
-    scene_publisher = rospy.Publisher(
-                                    '/move_group/display_planned_path',
-                                    moveit_msgs.msg.PlanningScene)
-    rospy.sleep(5)
+    # scene_publisher = rospy.Publisher(
+    #                                 '/move_group/display_planned_path',
+    #                                 moveit_msgs.msg.PlanningScene)
+    # rospy.sleep(5)
 
     # set planners
     right_arm = baxter_interface.Limb('right')
