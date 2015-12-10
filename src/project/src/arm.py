@@ -153,7 +153,7 @@ def callback(move):
         print(sty.bld + "Executing move 4:" + sty.clr + " Victory! Time to celebrate!")
         cele()
     else:
-        print("SOMETHING TERRIBLE HAS HAPPENED!!!")
+        print(sty.error + "SOMETHING TERRIBLE HAS HAPPENED!!!" + sty.clr)
     print(sty.bld + "Finished executing move." + sty.clr)
 
 
@@ -181,7 +181,7 @@ def init_calib():
             #     print("Moving Baxter into the new pose...")
             #     default_action_pose()
             #     rospy.sleep(0.5)
-            recal = raw_input("Recalibrate " + sty.bld + "(y/n)" + sty.clr + "?:")
+            recal = raw_input("Recalibrate?" + sty.bld +"[y/n]" + sty.clr + ":")
             if recal == 'n':
                 break
 
@@ -191,7 +191,7 @@ def init_calib():
             default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
             print_tf(default_image_pose[0], "Baxter's Gripper Arm, " + sty.bld + "IMAGING" + sty.clr)
             print_tf(default_image_pose[1], "Baxter's Camera Arm, " + sty.bld + "IMAGING" + sty.clr)
-            recal = raw_input("Recalibrate " + sty.bld + "(y/n)" + sty.clr + "?:")
+            recal = raw_input("Recalibrate?" + sty.bld +"[y/n]" + sty.clr + ":")
             if recal == 'n':
                 break
 
@@ -200,7 +200,7 @@ def init_calib():
             raw_input("Press Enter to record the pose...")
             trash_bin = lookup_transform('right_hand')
             print_tf(trash_bin, "Baxter's Gripper Arm, " + sty.bld + "TRASH" + sty.clr)
-            recal = raw_input("Recalibrate " + sty.bld + "(y/n)" + sty.clr + "?:")
+            recal = raw_input("Recalibrate?" + sty.bld +"[y/n]" + sty.clr + ":")
             if recal == 'n':
                 break
 
@@ -234,6 +234,7 @@ def init_calib():
 class sty:
     bld = '\033[1m'
     clr = '\033[0m'
+    error = '\033[31m'
 
 
 if __name__ == '__main__':
