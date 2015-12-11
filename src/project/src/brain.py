@@ -20,8 +20,8 @@ PIXEL_SIZE = 256 #Read from images
 piece_heights = {}
 ph = {'p':0.14, 'r':0.14, 'b':0.14, 'n':0.17, 'q':0.17, 'k':0.17}
 for key in ph:
-    piece_heights[key.upper()] = ph[key]
-    piece_heights[key] = ph[key]
+    piece_heights[key.upper()] = ph[key] + 0.3
+    piece_heights[key] = ph[key] + 0.3
 del ph
 
 PLAYING = None
@@ -268,7 +268,7 @@ def callback(data):
 
     if board.turn == (PLAYING == 'WHITE') and board.fullmove_number > last_turn:
         last_turn = board.fullmove_number
-        engine.position(board, make_move)
+        engine.position(board)
         reply = engine.go(movetime=500, async_callback=False).bestmove
         make_move(reply)
 
