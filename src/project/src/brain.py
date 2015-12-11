@@ -278,7 +278,7 @@ def callback(data):
         print(ind)
 
         if SAVE_MLE_ERRORS:
-            p = '/home/shallowblue/Project/src/project/images/new_training/'
+            p = '/home/shallowblue/Project/src/project/src/Correct/'
             for j in ind:
                 prepend = p
                 if brain.mode == 'difference':
