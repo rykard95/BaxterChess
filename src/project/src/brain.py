@@ -261,18 +261,25 @@ def callback(data):
 
     evidence, labels, squares = detect_pieces(image)
     board, move = most_prob_state(evidence, board)
-    b = board_to_mask(board)
-    ind = np.where(b != labels)[0]
-    print(ind)
     print board
 
     #Data gathering
-    if SAVE_MLE_ERRORS or SAVE_INCORRECT:
-        cor = raw_input("Was this board guess correct? [y/n]:")
-        if cor == 'y' and SAVE_MLE_ERRORS:
-            p = '/home/shallowblue/Project/src/project/src/Correct/'
-            through = ind
-            for j in through:
+    if SAVE_MLE_ERRORS:
+        cor = raw_input("Was this board guess correct? [y/n/?]:")
+        if '?' in cor: 
+            if move: board.pop()
+            return
+        if 'n' in cor:
+            if move: board.pop()
+            move = board.push_san(raw_input('What was the real move? '))
+
+        b = board_to_mask(board)
+        ind = np.where(b != labels)[0]
+        print(ind)
+
+        if SAVE_MLE_ERRORS:
+            p = '/home/shallowblue/Project/src/project/images/new_training/'
+            for j in ind:
                 prepend = p
                 if brain.mode == 'difference':
                     if b[j] == 1:
@@ -304,11 +311,6 @@ def callback(data):
                 imsave(prepend + str(data.unperspective.header.stamp)\
                                      +'-'+ str(j)+'.jpg',\
                                  squares[j])
-        elif SAVE_INCORRECT:
-            p = '/home/shallowblue/Project/src/project/src/Incorrect/'
-            for j in ordering:
-              imsave('{}-{}.jpg'.format(data.unperspective.header.stamp,j),
-                     squares[j])
             
     if board.is_game_over():
         print '## GAME OVER, HUMAN!'
@@ -371,11 +373,9 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--engine', default='stockfish',
                         help='executable of engine to play with')
     parser.add_argument('-b', '--brain', default='pickled_brain.p')
-    parser.add_argument('--save-incorrects', action='store_true')
     parser.add_argument('--save-mle-errors', action='store_true')
     args = parser.parse_args(rospy.myargv()[1:])
 
-    SAVE_INCORRECT = args.save_incorrects
     SAVE_MLE_ERRORS = args.save_mle_errors
 
     brain = pickle.load(open(args.brain, 'rb'))
