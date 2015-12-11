@@ -24,6 +24,7 @@ elif mode == 'difference':
 X = []
 Y = []
 images = []
+names = []
 for c in classes:
     print("Currently on class: " + c)
     for im in listdir(os.path.join(sys.argv[1], c)):
@@ -37,11 +38,13 @@ for c in classes:
                  cells_per_block=(1,1))
         fd = np.append(fd, s)
         X.append(fd)
+        names.append(im)
         Y.append(labels[c])
 
 X = np.vstack(X)
 Y = np.vstack(Y)
 images = np.vstack(images)
+names = np.vstack(names)
 shuffle = np.random.randint(0, X.shape[0], X.shape[0])
 
 print("Finished Stacking!")
@@ -56,8 +59,10 @@ Y_train = Y[:a]
 X_valid = X[a:]
 Y_valid = Y[a:]
 images = images[shuffle][:a]
+names = names[shuffle][:a]
 
 
-data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'mode':mode, 'images': images}
+data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid,\
+        'test_labels': Y_valid, 'mode':mode, 'images': images, 'names': names}
 savemat('data.mat', data)
 
