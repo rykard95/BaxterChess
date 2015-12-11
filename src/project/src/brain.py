@@ -13,6 +13,7 @@ import cv_bridge
 import cv2 as v
 
 from project.msg import BoardMessage, MoveMessage
+from geometry_msgs.msg import Point
 
 PIXEL_SIZE = 256 #Read from images
 
@@ -222,19 +223,32 @@ bridge = cv_bridge.CvBridge()
 def unmake_point_message(pt):
     return np.array([pt.x, pt.y, pt.z])
 
+prev_image = None
+last_turn = -1
+BOARD_DIFFERENCE_THRESHOLD = 500000
 def callback(data):
-    global board
+    global board, prev_image, A, last_turn
 
     since = rospy.Time.now() - data.unperspective.header.stamp
-    print since.to_sec()
-    if since.to_sec() > 0.5:
+    if since.to_sec() > 0.25:
+        print 'The board is stale'
         return
 
     points = [data.topleft, data.topright, data.botleft, data.botright]
     points = map(unmake_point_message, points)
-    image = bridge.imgmsg_to_cv2(data.unperspective, 
-                                 desired_encoding='bgr8')
+    A = get_squaremap(points)
+
+    image = bridge.imgmsg_to_cv2(data.unperspective, desired_encoding='bgr8')
     image = v.cvtColor(image, v.COLOR_BGR2GRAY)
+
+    if prev_image is None:
+        prev_image = image
+        return
+
+    if ((prev_image - image)**2).sum() > BOARD_DIFFERENCE_THRESHOLD:
+        print "The board isn't stable"
+    prev_image = image
+
     if PLAYING == None:
         initialize(image)
         print 'We are playing as ', PLAYING
@@ -248,48 +262,44 @@ def callback(data):
         print '## GAME OVER, HUMAN!'
         rospy.signal_shutdown('Because the game is over')
 
-    if board.turn == (PLAYING == 'WHITE'):
-        engine.position(board)
-        reply = engine.go(movetime=500).bestmove
-        print '## {}'.format(board.san(reply))
-    return
-
     if move is None:
         print 'No best board! Something went wrong.'
         # request perturbation
-    elif move is False:
-        print 'No move was made.'
-        # don't do anything
-    else:
-        # get move from Stockfish & apply it to a board
-        engine.position(board)
-        reply = engine.go(movetime=500).bestmove
+
+    if board.turn == (PLAYING == 'WHITE') and board.fullmove_number > last_turn:
+        last_turn = board.fullmove_number
+        engine.position(board, make_move)
+        reply = engine.go(movetime=500, async_callback=False).bestmove
+        make_move(reply)
 
 
-        # find real-world start & end positions 
-        A = get_squaremap(points)
-        start = A.dot(squareid_to_coord(reply.from_square))
-        end = A.dot(squareid_to_coord(reply.to_square))
+def create_move_msg(strt, dest, piece, type=0):
+    msg = MoveMessage()
+    ofs = np.array([0, 0, piece_heights[piece]])
+    msg.source = make_point_message(strt + ofs)
+    msg.destination = make_point_message(dest + ofs)
+    msg.type = type
+    return msg
 
-        # if we've captured, first send a message saying to remove that piece
-        square_contents = board.piece_at(reply.to_square)
-        if square_contents != None:
-            msg = MoveMessage()
-            ofs = np.array([0, 0, piece_heights[square_contents]])
-            msg.source = msg.destination = make_point_message(end + ofs)
-            msg.type = 1
-            pub.publish(msg)
 
-        # create the message
-        square_contents = board.piece_at(reply.from_square)
-        ofs = np.array([0, 0, piece_heights[square_contents]])
-        msg = MoveMessage()
-        msg.source = make_point_message(start + ofs)
-        msg.destination = make_point_message(end + ofs)
-        msg.type = 0
-        pub.publish(msg)
+def make_move(move):
+    print '## {}'.format(board.san(move))
+    
+    # find real-world start & end positions 
+    start = A.dot(squareid_to_coord(move.from_square))
+    end = A.dot(squareid_to_coord(move.to_square))
 
-        board.push(reply)
+    # if we've captured, first send a message saying to remove that piece
+    square_contents = board.piece_at(move.to_square)
+    if square_contents != None:
+        square_contents = square_contents.symbol()
+        pub.publish(create_move_msg(end, end, square_contents, 1))
+
+    # create the message
+    square_contents = board.piece_at(move.from_square).symbol()
+    pub.publish(create_move_msg(start, end, square_contents, 0))
+
+
 
 
 def make_point_message(pt):
