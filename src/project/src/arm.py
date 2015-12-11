@@ -351,7 +351,7 @@ if __name__ == '__main__':
     left_planner = moveit_commander.MoveGroupCommander('left_arm')
     right_planner = moveit_commander.MoveGroupCommander('right_arm')
     left_planner.set_planner_id('RRTConnectkConfigDefault')
-    left_planner.set_planning_time(5)
+    left_planner.set_planning_time(20)
     right_planner.set_planner_id('RRTConnectkConfigDefault')
     right_planner.set_planning_time(20)
     right_gripper = baxter_gripper.Gripper('right')

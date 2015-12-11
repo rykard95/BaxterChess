@@ -12,6 +12,7 @@ from tf2_msgs.msg import TFMessage
 from cv_bridge import CvBridge, CvBridgeError
 from baxter_interface import camera as baxter_cam
 from project.msg import BoardMessage
+from std_msgs.msg import Int8
 
 
 # name of the world frame
@@ -70,6 +71,9 @@ def lookup_transform(name):
     return tfl.lookupTransform(BASE_FRAME, name, rospy.Time(0))
 
 
+def video_lock_callback(lock):
+    video_lock = lock
+
 def callback(data):
     im = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
     # im = v.undistort(im, MTX, DIST)
@@ -112,8 +116,8 @@ def callback(data):
             p = tfl.transformPoint(BASE_FRAME, point).point
             setattr(message, fields[i], p)
             print [p.x, p.y, p.z]
-
-        pub.publish(message)
+        if video_lock == 0:    
+            pub.publish(message)
 
     if PUBLISH_DRAWPOINTS:
         v.drawChessboardCorners(im, (7,7), corners, found)
@@ -139,6 +143,7 @@ if __name__ == '__main__':
                         help='output drawChessboardPoints Image topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE,
                         help='scale this much before corner-finding')
+    parser.add_argument('-e', 'eye_topic', required=True)
     args = parser.parse_args(rospy.myargv()[1:])
     board_topic = args.out
     in_topic = args.image
@@ -163,6 +168,10 @@ if __name__ == '__main__':
     # set up the CV bridge & TF listener
     bridge = CvBridge()
     tfl = tf.TransformListener()
+
+    # set up connection to arm
+    global video_lock = 0
+    rospy.Subscriber(args.eye_topic, Int8, video_lock_callback)
 
     # create a camera listener node
     rospy.Subscriber(in_topic, Image, callback)
