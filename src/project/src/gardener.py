@@ -13,6 +13,7 @@ from sklearn.svm import SVC
 
 data = loadmat('data.mat')
 
+MODE = 'color' #Todo: get this from the data
 print("Preparing soil.")
 train_images = data['train_images']
 n = train_images.shape[0]
@@ -59,9 +60,10 @@ pred = fc.predict(train_images)
 acc = (pred == train_labels).astype(int)
 print("The accuracy is " + str(float(sum(acc))/len(acc)))
 
+fc.mode = MODE
 # imgs = imgs[ind]
 
 # for im in imgs:
 #     plt.imshow(im.reshape((64,64,3)))
 #     plt.show()
-pickle.dump(fc, open('better_richard.p', 'wb'))
+pickle.dump(fc, open('pickled_brain.p', 'wb'))
