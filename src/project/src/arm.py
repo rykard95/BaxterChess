@@ -16,7 +16,7 @@ from moveit_msgs.msg import (
     OrientationConstraint, Constraints, PositionConstraint )
 from geometry_msgs.msg import PoseStamped
 from project.msg import *
-
+from std_msgs.msg import Int8
 
 
 # the name of the world frame
@@ -53,6 +53,7 @@ def assign_arr(xyz, arr=None):
     return arr
 
 def goto(trans, rot=np.array([0,-1,0,0]), left=False):
+    pub.publish(1)
     planner = right_planner
     if left:
         planner = left_planner
@@ -101,6 +102,7 @@ def putdown(position):
 
 def goto_action_pose():
     """Position Baxter's arms in the default action pose."""
+    pub.publish(1)
     right_goal = default_action_pose[0][0]
     left_goal = default_action_pose[1][0]
     goto(left_goal, left=1)
@@ -109,12 +111,16 @@ def goto_action_pose():
 
 def goto_image_pose():
     """Position Baxter's arms in the default imaging pose."""
+    pub.publish(1)
     right_goal = default_image_pose[0][0]
     left_goal = default_image_pose[1][0]
     goto(right_goal)
     goto(left_goal, left=1)
+    rospy.sleep(1)
+    pub.publish(0)
 
 def goto_trash_pose():
+    pub.publish(1)
     """Position Baxter's arms in the default trash bin pose"""
     right_goal = trash_bin[0][0]
     left_goal = trash_bin[1][0]
@@ -124,15 +130,19 @@ def goto_trash_pose():
 
 def perturb():
     """Position the Camera Arm randomnly within current(x,y,z) +/- PERTURB_TOLS(0,1,2)."""
+    pub.publish(1)
     current_pose = lookup_transform('left_hand')
     x = rand.uniform(-PERTURB_TOLS[0], PERTURB_TOLS[0]) 
     y = rand.uniform(-PERTURB_TOLS[1], PERTURB_TOLS[1])
     z = rand.uniform(-PERTURB_TOLS[2], PERTURB_TOLS[2])
     goto(tuple(x,y,z), left=1)
+    rospy.sleep(1)
+    pub.publish(0)
 
 
 def cele():
     """Baxter displays prowess over his mortal opponent with a magical celebration."""
+    pub.publish(1)
     goto(default_image_pose[0][0])
     goto(default_action_pose[1][0], left=1)
 
@@ -217,15 +227,14 @@ def init_calib(def_poses_file):
     print(sty.st + "Initializing Baxter's Default Arm Positions:" + sty.clr)
     file_choice = raw_input("Current default pose file is " + sty.fl + def_poses_file + sty.clr + 
         ". Would you like to change files?" + sty.yn)
+
     if file_choice == 'y':
         new_file = raw_input("Enter the desired default pose file:")
-        if os.path.exists(new_file):
-            def_poses_file = new_file
-        else:
-            f = open(new_file, 'w+')
-            f.close()
-            print(sty.fl + new_file + sty.clr + " has been created.")
         def_poses_file = new_file
+
+    if not os.path.isfile(def_poses_file):
+        open(def_poses_file, 'w+')
+        print(sty.fl + def_poses_file + sty.clr + " has been created.")
 
     done = False
     def_poses_arr = [None, None, None]
@@ -301,6 +310,7 @@ def init_calib(def_poses_file):
 
     print(sty.fin + "Initialization Complete!" + sty.kw + "\nCharging lasers..."
         +"Ready to exterminate my inferior competition!" + sty.clr)
+    goto_image_pose()
 
 class sty:
     clr = '\033[0m'
@@ -322,6 +332,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-m', '--move_topic', required=True,
                         help='move message topic')
+    parser.add_argument('-e', '--eye_topic', required=True)
     parser.add_argument('-f', '--def_poses_file', default='def_poses.txt')
     args = parser.parse_args(rospy.myargv()[1:])
 
@@ -360,10 +371,14 @@ if __name__ == '__main__':
     # set up TF
     tfl = tf.TransformListener()
 
-    # initialzie baxter's safe arm positions
-    init_calib(args.def_poses_file)
-
     # create our node and its listeners and publishers
     rospy.Subscriber(args.move_topic, MoveMessage, callback)
+    global pub = rospy.Publisher(args.eye_topic, Int8, queue_size=3)
+
+    # initialzie baxter's safe arm positions
+    pub.publish(1)
+    init_calib(args.def_poses_file)
+    pub.publish(0)
+
     rospy.spin()
 
