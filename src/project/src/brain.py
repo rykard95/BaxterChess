@@ -233,7 +233,6 @@ def callback(data):
 
     since = rospy.Time.now() - data.unperspective.header.stamp
     if since.to_sec() > 0.25:
-        print 'The board is stale'
         return
 
     points = [data.topleft, data.topright, data.botleft, data.botright]
@@ -247,9 +246,10 @@ def callback(data):
         prev_image = image
         return
 
+    prev_image = image
     if ((prev_image - image)**2).sum() > BOARD_DIFFERENCE_THRESHOLD:
         print "The board isn't stable"
-    prev_image = image
+        return
 
     if PLAYING == None:
         initialize(image)
