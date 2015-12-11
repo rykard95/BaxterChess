@@ -4,6 +4,7 @@ import sys, argparse
 import numpy as np
 import random as rand
 import pickle
+import os
 
 import rospy
 import cv2 as v
@@ -28,6 +29,7 @@ PERTURB_TOLS = [0.05, 0.05, 0.05]
 OFFSET = np.array([0,0, 7/100])
 
 CLOSE_AMOUNT = 100.0
+OPEN_AMOUNT = 100.0
 hld_frc = 1
 mv_frc = 25
 
@@ -75,10 +77,13 @@ def lookup_transform(name):
     return tfl.lookupTransform(BASE_FRAME, name, rospy.Time(0))
 
 def grasp():
-    grip.close(block=True)
+    right_gripper.close(block=True)
+    # TODO: check if close() can take in CLOSE_AMOUNT
+    # update: apparently it does not take in a close amount arg. 
+    # http://api.rethinkrobotics.com/baxter_interface/html/baxter_interface.gripper.Gripper-class.html#close
 
 def release():
-    grip.command_position(OPEN_AMOUNT, block=True)
+    right_gripper.command_position(OPEN_AMOUNT, block=True)
 
 def pickup(position):
     goto(position + OFFSET)
@@ -109,6 +114,13 @@ def goto_image_pose():
     goto(right_goal)
     goto(left_goal, left=1)
 
+def goto_trash_pose():
+    """Position Baxter's arms in the default trash bin pose"""
+    right_goal = trash_bin[0][0]
+    left_goal = trash_bin[1][0]
+    goto(left_goal, left=1)
+    goto(right_goal)
+    release()
 
 def perturb():
     """Position the Camera Arm randomnly within current(x,y,z) +/- PERTURB_TOLS(0,1,2)."""
@@ -127,36 +139,37 @@ def cele():
 
 def callback(move):
     # check whether move is 'no move' or not
-    if move.type == 0 or move.type == 1: # pickup-putdown request: 0 = normal, 1 = trash
-        print(sty.kw + "Executing move " + move.type + ":" + sty.clr + " pickup-putdown...")
+    if move.type == 0: # pickup-putdown request: 0 = normal, 1 = trash
+        print(sty.st + "Executing move 0:" + sty.clr + " pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
         strt = assign_arr(tuple(move.source.x, move.source.y, move.source.z))
-        if move.type:
-            dest = assign_arr(trash_bin[0])
-        else:
-            dest = assign_pull(tuple(move.destination.x, move.destination.y, move.destination.z))
+        dest = assign_pull(tuple(move.destination.x, move.destination.y, move.destination.z))
         #  put arms in action pose, pick up at strt, put down at dest,
         #  and return to the imaging position
         goto_action_pose()
         pickup(strt) 
         putdown(dest) 
-        if move.type:
-            goto_action_pose()
-        else:
-            goto_image_pose()
+        goto_image_pose()
+    elif move.type == 1:
+        print(sty.st + "Executing move 1:" + sty.clr + " pickup-put_in_trash...")
+        strt = assign_arr(tuple(move.source.x, move.source.y, move.source.z))
+        goto_action_pose()
+        pickup(strt)
+        goto_trash_pose()
+        goto_action_pose()
     elif move.type == 2: # perturb request
-        print(sty.kw + "Executing move 2:" + sty.clr + " perturb...")
+        print(sty.st + "Executing move 2:" + sty.clr + " perturb...")
         goto_image_pose()
         perturb()
     elif move.type == 3:
-        print(sty.kw + "Executing move 3:" + sty.clr + " goto default default image pose...")
+        print(sty.st + "Executing move 3:" + sty.clr + " goto default default image pose...")
         goto_image_pose()
     elif move.type == 4:
-        print(sty.kw + "Executing move 4:" + sty.clr + " Victory! Time to celebrate!")
+        print(sty.st + "Executing move 4:" + sty.clr + " Victory! Time to celebrate!")
         cele()
     else:
         print(sty.er + "SOMETHING TERRIBLE HAS HAPPENED!!!" + sty.clr)
-    print(sty.fin + "Finished executing move." + sty.clr)
+    print(sty.fin + "Finished executing move " + move.type + " ." + sty.clr)
 
 
 def print_tf(transform, id):
@@ -168,7 +181,8 @@ def print_tf(transform, id):
 
 def print_pose(pose):
     if pose == trash_bin:
-        print_tf(trash_bin, sty.clr + "Baxter's " + sty.kw + "Gripper Arm, TRASH" + sty.clr)
+        print_tf(trash_bin[0], sty.clr + "Baxter's " + sty.kw + "Gripper Arm, TRASH" + sty.clr)
+        print_tf(trash_bin[1], sty.clr + "Baxter's " + sty.kw + "Camera Arm, TRASH" + sty.clr)
     elif pose == default_action_pose:
         print_tf(pose[0], sty.clr + "Baxter's " + sty.kw + "Gripper Arm, ACTION" + sty.clr)
         print_tf(pose[1], sty.clr + "Baxter's " + sty.kw + "Camera Arm, ACTION" + sty.clr)
@@ -179,28 +193,60 @@ def print_pose(pose):
         print(sty.er + "Not a default pose!")
 
 
+def def_poses_test():
+    while 1:
+        test = raw_input("Would you like to goto a default pose?" + sty.bld + " [a/i/t/n]" + sty.clr + ":")
+        if test == 'a':
+            print_pose(default_action_pose)
+            goto_action_pose()
+        elif test == 'i':
+            print_pose(default_image_pose)
+            goto_image_pose()
+        elif test == 't':
+            print_pose(trash_bin)
+            goto_trash_pose()
+        elif test == 'n':
+            break
+        else:
+            print(sty.er + test + " is not a valid option! Please choose from " + sty.bld + " [a/i/t/n]" + sty.clr + ".")
+
+
 def init_calib(def_poses_file):
     global default_action_pose, default_image_pose, trash_bin
 
     print(sty.st + "Initializing Baxter's Default Arm Positions:" + sty.clr)
-    f = open(def_poses_file, 'rb')
-    def_poses_arr = pickle.load(f)
-    default_action_pose, default_image_pose, trash_bin = def_poses_arr[0], def_poses_arr[1], def_poses_arr[2]
-
-    view = raw_input("Would you like to view the current default poses in " + sty.kw + def_poses_file + sty.clr + "?" + sty.yn)
-    if view == 'y':
-        print_pose(default_action_pose)
-        print_pose(default_image_pose)
-        print_pose(trash_bin)
-
-    test = raw_input("Test current the default poses?" + sty.yn)
-    if test == 'y':
-        def_poses_test()
+    file_choice = raw_input("Current default pose file is " + sty.fl + def_poses_file + sty.clr + 
+        ". Would you like to change files?" + sty.yn)
+    if file_choice == 'y':
+        while 1:
+            new_file = raw_input("Enter the desired default pose file:")
+            if os.path.isfile(new_file):
+                def_poses_file = new_file
+                break
+            print(sty.fl + new_file + sty.er + " is not a valid file path!!!")
 
     done = False
-    new_init = raw_input("Use the current default poses?" + sty.yn)
-    if new_init == 'y':
-        done = True
+    if os.stat(def_poses_file).st_size == 0:
+        print(sty.fl + def_poses_file + sty.clr + " is empty. Please continue with the initialization.")
+    else:
+        f = open(def_poses_file, 'rb')
+        def_poses_arr = pickle.load(f)
+        default_action_pose, default_image_pose, trash_bin = def_poses_arr[0], def_poses_arr[1], def_poses_arr[2]
+
+        view = raw_input("Would you like to view the current default poses in " + sty.fl + def_poses_file + sty.clr + "?" + sty.yn)
+        if view == 'y':
+            print_pose(default_action_pose)
+            print_pose(default_image_pose)
+            print_pose(trash_bin)
+
+        test = raw_input("Test current the default poses?" + sty.yn)
+        if test == 'y':
+            def_poses_test()
+
+        new_init = raw_input("Use the current default poses?" + sty.yn)
+        if new_init == 'y':
+            done = True
+        f.close()
 
     while not done:
         while 1:
@@ -231,7 +277,7 @@ def init_calib(def_poses_file):
         while 1: 
             print("Please put Baxter's Gripper Arm in the default " + sty.kw + "TRASH" + sty.clr + " pose.")
             raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
-            trash_bin = lookup_transform('right_hand')
+            trash_bin = [lookup_transform('right_hand'), lookup_transform('left_hand')]
             print_pose(trash_bin)
             recal = raw_input("Recalibrate?" + sty.yn)
             if recal == 'n':
@@ -244,29 +290,11 @@ def init_calib(def_poses_file):
             def_poses_arr[1] = default_image_pose
             def_poses_arr[2] = trash_bin
             break
-    f.close()
     pickle.dump(def_poses_arr, open(def_poses_file, 'wb')) 
+    print("Default poses have been save to " + sty.fl + def_poses_file + sty.clr + ".")
 
     print(sty.fin + "Initialization Complete!" + sty.kw + "\nCharging lasers..."
         +"Ready to exterminate my inferior competition!" + sty.clr)
-
-def def_poses_test():
-    while 1:
-        test = raw_input("Would you like to goto a default pose?" + sty.bld + " [a/i/t/n]" + sty.clr + ":")
-        if test == 'a':
-            print_pose(default_action_pose)
-            goto_action_pose()
-        elif test == 'i':
-            print_pose(default_image_pose)
-            goto_image_pose()
-        elif test == 't':
-            print_pose(trash_bin)
-            goto(trash_bin[0])
-        elif test == 'n':
-            break
-        else:
-            print(sty.er + test + " is not a valid option! Please choose from " + sty.bld + " [a/i/t/n]" + sty.clr + ".")
-
 
 class sty:
     clr = '\033[0m'
@@ -277,6 +305,7 @@ class sty:
     st = bld + '\033[35m'
     fin = bld + '\033[32m' 
     blk = bld + '\033[5m'
+    fl = kw + '\033[4m'
 
 
 if __name__ == '__main__':
