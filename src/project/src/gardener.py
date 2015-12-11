@@ -25,9 +25,9 @@ test_labels = data['test_labels'].flatten()
 
 # 250
 print("Planting trees!\n")
-fc = AdaBoostClassifier(DecisionTreeClassifier(max_depth=4),
-                        n_estimators=200, learning_rate=0.5)
-# fc = RandomForestClassifier(n_estimators=500, bootstrap=True, n_jobs=4)
+# fc = AdaBoostClassifier(DecisionTreeClassifier(max_depth=4),
+#                         n_estimators=200, learning_rate=0.5)
+fc = RandomForestClassifier(n_estimators=500, bootstrap=True, n_jobs=4)
 
 print("Growing trees!\n")
 #bdt.fit(train_images, train_labels)

@@ -1,4 +1,5 @@
 #! /usr/bin/python
+import sys, os
 from scipy.ndimage import imread
 from matplotlib import pyplot as plt
 from os import listdir
@@ -23,25 +24,16 @@ elif mode == 'difference':
 X = []
 Y = []
 
-hs = []
-f = []
-imgs = []
 for c in classes:
-    #i = 0
-    for im in listdir(c):
-        image = color.rgb2gray(imread(c+"/"+im))[4:28, 4:28]
+    for im in listdir(os.path.join(sys.argv[1], c)):
+        im = os.path.join(sys.argv[1], c, im)
+        image = color.rgb2gray(imread(im))[4:28, 4:28]
         s = np.std(image)
-        # image -= np.min(image)
-        # image /= np.max(image)
-        #if i == 5:     
-        fd, h = hog(image, orientations=8, pixels_per_cell=(8,8),\
-            cells_per_block=(1,1), visualise=True)
-        #fd = image.flatten()
+        image -= np.min(image)
+        image /= np.max(image)
+        fd = hog(image, orientations=8, pixels_per_cell=(8,8), \
+                 cells_per_block=(1,1))
         fd = np.append(fd, s)
-        # hs.append(h)
-        f.append(fd)
-        imgs.append(image)
-        #i += 1
         X.append(fd)
         Y.append(labels[c])
 
@@ -50,9 +42,6 @@ X = np.vstack(X)
 Y = np.vstack(Y)
 
 shuffle = np.random.randint(0, X.shape[0], X.shape[0])
-
-imgs = [im.flatten() for im in imgs]
-imgs = np.vstack(imgs)
 
 X = X[shuffle]
 Y = Y[shuffle]
@@ -67,5 +56,5 @@ Y_valid = Y[a:]
 
 
 data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'mode':mode}
-savemat('data', data)
+savemat('data.mat', data)
 

@@ -4,4 +4,4 @@ devel
 *.swp
 *.pyc
 *.p
-data.mat
+*.mat
