@@ -230,11 +230,9 @@ last_turn = -1
 BOARD_DIFFERENCE_THRESHOLD = 700000
 def callback(data):
     global board, prev_image, A, last_turn
-    print 'TRY'
 
     since = rospy.Time.now() - data.unperspective.header.stamp
     if since.to_sec() > 0.25:
-        print 'The board is stale'
         return
 
     points = [data.topleft, data.topright, data.botleft, data.botright]
@@ -245,7 +243,6 @@ def callback(data):
     image = v.cvtColor(image, v.COLOR_BGR2GRAY)
 
     if prev_image is None:
-        print 'Initialize prev_image'
         prev_image = image
         return
 
