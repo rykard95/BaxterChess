@@ -1,4 +1,5 @@
 #! /usr/bin/python
+import os
 import chess.uci
 import rospy
 from skimage import color
@@ -260,54 +261,53 @@ def callback(data):
     board, move = most_prob_state(evidence, board)
     print board
 
+
     #Data gathering
     if SAVE_MLE_ERRORS:
-        cor = raw_input("Was this board guess correct? [y/n/?]:")
-        if '?' in cor: 
-            if move: board.pop()
-            return
-        if 'n' in cor:
-            if move: board.pop()
-            move = board.push_san(raw_input('What was the real move? '))
+        if ASK_IF_CORRECT:
+            cor = raw_input("Was this board guess correct? [y/n/?]:")
+            if '?' in cor: 
+                if move: board.pop()
+                return
+            if 'n' in cor:
+                if move: board.pop()
+                move = board.push_san(raw_input('What was the real move? '))
 
         b = board_to_mask(board)
         ind = np.where(b != labels)[0]
         print(ind)
 
-        if SAVE_MLE_ERRORS:
-            p = '/home/shallowblue/Project/src/project/images/training/'
-            for j in ind:
-                prepend = p
-                if brain.mode == 'difference':
-                    if b[j] == 1:
-                        if grid[j] == 1:
-                            prepend += "WhiteOnWhite/"
-                        else:
-                            prepend += "WhiteOnBlack/"
-                    elif labels[j] == 2:
-                        if grid[j] == 1:
-                            prepend += "BlackOnBlack/"
-                        else:
-                            prepend += "BlackOnWhite/"
-                    elif labels[j] == 0:
-                        if grid[j] == 1:
-                            prepend += "EmptyWhite/"
-                        else:
-                            prepend += "EmptyBlack/"            
-                elif brain.mode == 'color':
-                    if b[j] == 0:
-                        prepend += "Empty"
-                    elif b[j] == 1:
-                        prepend += "WhiteOn"
-                    else:
-                        prepend += "BlackOn"
+        p = '/home/shallowblue/Project/src/project/images/maybe-train/'
+        for j in ind:
+            if brain.mode == 'difference':
+                if b[j] == 1:
                     if grid[j] == 1:
-                        prepend += "White/"
+                        kind = "WhiteOnWhite/"
                     else:
-                        prepend += "Black/"
-                imsave(prepend + str(data.unperspective.header.stamp)\
-                                     +'-'+ str(j)+'.jpg',\
-                                 squares[j])
+                        kind = "WhiteOnBlack/"
+                elif labels[j] == 2:
+                    if grid[j] == 1:
+                        kind = "BlackOnBlack/"
+                    else:
+                        kind = "BlackOnWhite/"
+                elif labels[j] == 0:
+                    if grid[j] == 1:
+                        kind = "EmptyWhite/"
+                    else:
+                        kind = "EmptyBlack/"            
+            elif brain.mode == 'color':
+                if b[j] == 0:
+                    kind = "Empty"
+                elif b[j] == 1:
+                    kind =  "WhiteOn"
+                else:
+                    kind = "BlackOn"
+                if grid[j] == 1:
+                    kind += "White/"
+                else:
+                    kind += "Black/"
+            name = '{}-{}.jpg'.format(data.unperspective.header.stamp, j)
+            imsave(os.path.join(p, kind, name), squares[j])
             
     if board.is_game_over():
         print '## GAME OVER, HUMAN!'
@@ -376,9 +376,11 @@ if __name__ == '__main__':
                         help='executable of engine to play with')
     parser.add_argument('-b', '--brain', default='pickled_brain.p')
     parser.add_argument('--save-mle-errors', action='store_true')
+    parser.add_argument('--save-mle-noask', action='store_true')
     args = parser.parse_args(rospy.myargv()[1:])
 
-    SAVE_MLE_ERRORS = args.save_mle_errors
+    SAVE_MLE_ERRORS = args.save_mle_errors or args.save_mle_noask
+    ASK_IF_CORRECT = not args.save_mle_noask
 
     brain = pickle.load(open(args.brain, 'rb'))
     engine = chess.uci.popen_engine(args.engine)
@@ -386,7 +388,8 @@ if __name__ == '__main__':
     board = chess.Board()
     prev_board = []
 
-    pub = rospy.Publisher(args.output, MoveMessage, latch=True, queue_size=2)
+    pub = rospy.Publisher(args.output, MoveMessage, 
+                          latch=True, queue_size=2)
 
     rospy.Subscriber(args.input, BoardMessage, callback)
     print 'Frontal cortex ready!'

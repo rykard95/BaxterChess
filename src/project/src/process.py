@@ -23,26 +23,28 @@ elif mode == 'difference':
             "WhiteOnBlack": np.array([2]), "WhiteOnWhite": np.array([1])}
 X = []
 Y = []
-
+images = []
 for c in classes:
+    print("Currently on class: " + c)
     for im in listdir(os.path.join(sys.argv[1], c)):
         im = os.path.join(sys.argv[1], c, im)
         image = color.rgb2gray(imread(im))[4:28, 4:28]
+        images.append(image.flatten())
         s = np.std(image)
-        image -= np.min(image)
-        image /= np.max(image)
+        # image -= np.min(image)
+        # image /= np.max(image)
         fd = hog(image, orientations=8, pixels_per_cell=(8,8), \
                  cells_per_block=(1,1))
         fd = np.append(fd, s)
         X.append(fd)
         Y.append(labels[c])
 
-
 X = np.vstack(X)
 Y = np.vstack(Y)
-
+images = np.vstack(images)
 shuffle = np.random.randint(0, X.shape[0], X.shape[0])
 
+print("Finished Stacking!")
 X = X[shuffle]
 Y = Y[shuffle]
 
@@ -53,8 +55,9 @@ X_train = X[:a]
 Y_train = Y[:a]
 X_valid = X[a:]
 Y_valid = Y[a:]
+images = images[shuffle][:a]
 
 
-data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'mode':mode}
+data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'mode':mode, 'images': images}
 savemat('data.mat', data)
 

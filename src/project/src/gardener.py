@@ -46,9 +46,20 @@ acc = (pred == test_labels).astype(int)
 print("The accuracy is " + str(float(sum(acc))/len(acc)))
 
 ind = np.where(acc == 0)
-print("predicted errors: " + str(pred[ind]))
+print("wrong guesses: " + str(pred[ind]))
 print("actual labels: " + str(test_labels[ind]))
-print("probabilities: " + str(pred_prob[ind]))
+#print("probabilities: " + str(pred_prob[ind]))
+
+for i in ind[0]:
+    lreal = np.log(pred_prob[i][test_labels[i]])
+    lpred = np.log(pred_prob[i][pred[i]])
+    print pred[i], test_labels[i], lreal - lpred
+
+#richard = data['images'][ind]
+# for im in richard:
+    #plt.imshow(im.reshape((24,24)), cmap=plt.cm.gray)
+    #plt.show()
+
 
 print("Recalling training set")
 pred = fc.predict(train_images)
@@ -56,9 +67,4 @@ acc = (pred == train_labels).astype(int)
 print("The accuracy is " + str(float(sum(acc))/len(acc)))
 
 fc.mode = MODE
-# imgs = imgs[ind]
-
-# for im in imgs:
-#     plt.imshow(im.reshape((64,64,3)))
-#     plt.show()
 pickle.dump(fc, open('pickled_brain.p', 'wb'))
