@@ -11,18 +11,20 @@ import glob
 import argparse
 import cv_bridge
 import cv2 as v
+from scipy.misc import imsave
 
 from project.msg import BoardMessage, MoveMessage
 from geometry_msgs.msg import Point
 
 PIXEL_SIZE = 256 #Read from images
+grid = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten()
 
 piece_heights = {}
 ph = {'p':0.14, 'r':0.14, 'b':0.14, 'n':0.17, 'q':0.17, 'k':0.17}
 for key in ph:
-    piece_heights[key.upper()] = ph[key] + 0.3
-    piece_heights[key] = ph[key] + 0.3
+    piece_heights[key] = piece_heights[key.upper()] = ph[key] + 0.3
 del ph
+
 
 PLAYING = None
 
@@ -81,7 +83,7 @@ def get_squaremap(corners):
     return np.vstack((d1t2,d1t3,corners[0])).T
 
 def determine_initial_state(image):
-    evidence = detect_pieces(image)
+    evidence, __, __ = detect_pieces(image)
     states = {"WHITE":np.concatenate([np.ones(16) + 1, np.zeros(32), np.ones(16)]),\
                 "BLACK": np.concatenate([np.ones(16), np.zeros(32), np.ones(16)+1]),\
                 "wb":np.array([1,1,0,0,0,0,2,2,\
@@ -110,7 +112,7 @@ def compute_score(board, prob_table):
         board = board_to_mask(board)
     prob = 0
     for i in range(len(board)):
-        a = prob_table[board[i],i]
+        a = prob_table[int(board[i]),i]
         prob += np.log(a)
     return prob
 
@@ -145,8 +147,8 @@ def detect_pieces(image):
     featurized = np.zeros((64,73))
     for i in xrange(64):
         featurized[i,:] = featurize(squares[i])
-    proba = brain.predict_proba(featurized)
-    return proba.T
+    proba = brain.predict_proba(featurized).T
+    return proba, np.argmax(proba, axis=0).astype(int), squares
 
 def board_to_mask(board):
     """
@@ -163,7 +165,7 @@ def board_to_mask(board):
         else:
             piece = 2
         mask[std_ordering[square]] = piece
-    return mask
+    return mask.astype(int)
 
 minf = float('-inf')
 def most_prob_state(evidence, board):
@@ -225,7 +227,7 @@ def unmake_point_message(pt):
 
 prev_image = None
 last_turn = -1
-BOARD_DIFFERENCE_THRESHOLD = 500000
+BOARD_DIFFERENCE_THRESHOLD = 700000
 def callback(data):
     global board, prev_image, A, last_turn
 
@@ -254,10 +256,57 @@ def callback(data):
         print 'We are playing as ', PLAYING
         return
 
-    evidence = detect_pieces(image)
+    evidence, labels, squares = detect_pieces(image)
     board, move = most_prob_state(evidence, board)
+    b = board_to_mask(board)
+    ind = np.where(b != labels)[0]
+    print(ind)
     print board
 
+    #Data gathering
+    if SAVE_MLE_ERRORS or SAVE_INCORRECT:
+        cor = raw_input("Was this board guess correct? [y/n]:")
+        if cor == 'y' and SAVE_MLE_ERRORS:
+            p = '/home/shallowblue/Project/src/project/src/Correct/'
+            through = ind
+            for j in through:
+                prepend = p
+                if brain.mode == 'difference':
+                    if b[j] == 1:
+                        if grid[j] == 1:
+                            prepend += "WhiteOnWhite/"
+                        else:
+                            prepend += "WhiteOnBlack/"
+                    elif labels[j] == 2:
+                        if grid[j] == 1:
+                            prepend += "BlackOnBlack/"
+                        else:
+                            prepend += "BlackOnWhite/"
+                    elif labels[j] == 0:
+                        if grid[j] == 1:
+                            prepend += "EmptyWhite/"
+                        else:
+                            prepend += "EmptyBlack/"            
+                elif brain.mode == 'color':
+                    if b[j] == 0:
+                        prepend += "Empty"
+                    elif b[j] == 1:
+                        prepend += "WhiteOn"
+                    else:
+                        prepend += "BlackOn"
+                    if grid[j] == 1:
+                        prepend += "White/"
+                    else:
+                        prepend += "Black/"
+                imsave(prepend + str(data.unperspective.header.stamp)\
+                                     +'-'+ str(j)+'.jpg',\
+                                 squares[j])
+        elif SAVE_INCORRECT:
+            p = '/home/shallowblue/Project/src/project/src/Incorrect/'
+            for j in ordering:
+              imsave('{}-{}.jpg'.format(data.unperspective.header.stamp,j),
+                     squares[j])
+            
     if board.is_game_over():
         print '## GAME OVER, HUMAN!'
         rospy.signal_shutdown('Because the game is over')
@@ -319,10 +368,14 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--engine', default='stockfish',
                         help='executable of engine to play with')
     parser.add_argument('-b', '--brain', default='pickled_brain.p')
+    parser.add_argument('--save-incorrects', action='store_true')
+    parser.add_argument('--save-mle-errors', action='store_true')
     args = parser.parse_args(rospy.myargv()[1:])
 
-    brain = pickle.load(open(args.brain, 'rb'))
+    SAVE_INCORRECT = args.save_incorrects
+    SAVE_MLE_ERRORS = args.save_mle_errors
 
+    brain = pickle.load(open(args.brain, 'rb'))
     engine = chess.uci.popen_engine(args.engine)
     engine.uci()
     board = chess.Board()
