@@ -218,14 +218,17 @@ def init_calib(def_poses_file):
     file_choice = raw_input("Current default pose file is " + sty.fl + def_poses_file + sty.clr + 
         ". Would you like to change files?" + sty.yn)
     if file_choice == 'y':
-        while 1:
-            new_file = raw_input("Enter the desired default pose file:")
-            if os.path.isfile(new_file):
-                def_poses_file = new_file
-                break
-            print(sty.fl + new_file + sty.er + " is not a valid file path!!!")
+        new_file = raw_input("Enter the desired default pose file:")
+        if os.path.exists(new_file):
+            def_poses_file = new_file
+        else:
+            f = open(new_file, 'w+')
+            f.close()
+            print(sty.fl + new_file + sty.clr + " has been created.")
+        def_poses_file = new_file
 
     done = False
+    def_poses_arr = [None, None, None]
     if os.stat(def_poses_file).st_size == 0:
         print(sty.fl + def_poses_file + sty.clr + " is empty. Please continue with the initialization.")
     else:
@@ -249,6 +252,9 @@ def init_calib(def_poses_file):
         f.close()
 
     while not done:
+        default_action_pose = None
+        default_image_pose = None
+        trash_bin = None
         while 1:
             print("Please put Baxter's arms in the default " + sty.kw + "ACTION" + sty.clr + " pose.")
             raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
