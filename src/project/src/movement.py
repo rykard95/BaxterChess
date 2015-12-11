@@ -78,13 +78,8 @@ def drop(right_gripper=right_gripper):
     right_gripper.command_position(CLOSE_AMOUNT, block=True)
 
 def get_coord(silent = False):
-    try:
-        (trans, rot) = listener.lookupTransform('base', 'right_hand', rospy.Time(0))
-        if not silent: print("The coordinates are: " + str(trans))
-        return trans, rot
-    except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-        if not silent: print("There is something wrong")
-        else: raise
+    (trans, rot) = listener.lookupTransform('base', 'right_hand', rospy.Time(0))
+    return trans, rot
         
 def pickup():
     move(z=TABLE_HEIGHT)

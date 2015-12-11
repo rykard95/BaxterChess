@@ -34,6 +34,15 @@ OPEN_AMOUNT = 100.0
 hld_frc = 1
 mv_frc = 25
 
+def lookup_transform(name):
+    trans, rot = tfl.lookupTransform(BASE_FRAME, name, rospy.Time(0))
+    x, y, z, rott = get_pose(name)
+    trans = np.array(trans) + np.array([x,y,z])
+    rot = np.array(rot) + np.array(rott)
+    return trans/2, rot/2
+
+def get_z():
+    return rarm_coord[0][2]
 
 def assign_xyz(arr, xyz):
     xyz.x = arr[0]
@@ -74,9 +83,13 @@ def goto(trans, rot=np.array([0,-1,0,0]), left=False):
     planner.execute(plan)
     rospy.sleep(0.5)
 
+def get_pose(arm):
+    arm = left_arm if arm=='left_hand' else right_arm
+    pose = arm.endpoint_pose()
+    pos = pose['position']
+    Q = pose['orientation']
+    return pos.x, pos.y, pos.z, [Q.x, Q.y, Q.z, Q.w]
 
-def lookup_transform(name):
-    return tfl.lookupTransform(BASE_FRAME, name, rospy.Time(0))
 
 def grasp():
     right_gripper.close(block=True)
@@ -151,8 +164,8 @@ def cele():
 def callback(move):
     pub.publish(1)
     rospy.sleep(1)
-    move.source.z = z_coord
-    move.destination.z = z_coord
+    move.source.z += z_coord
+    move.destination.z += z_coord
     # check whether move is 'no move' or not
     if move.type == 0: # pickup-putdown request: 0 = normal, 1 = trash
         print(sty.st + "Executing move 0:" + sty.clr + " pickup-putdown...")

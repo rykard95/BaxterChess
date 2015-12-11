@@ -20,7 +20,7 @@ PIXEL_SIZE = 256 #Read from images
 grid = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten()
 
 piece_heights = {}
-ph = {'p':0.14, 'r':0.14, 'b':0.14, 'n':0.17, 'q':0.17, 'k':0.17}
+ph = {'p': 0.005, 'n': 0.01, 'b': 0.01, 'r': 0.01, 'q': 0.01, 'k': 0.01}
 for key in ph:
     piece_heights[key] = piece_heights[key.upper()] = ph[key]
 del ph
@@ -326,9 +326,9 @@ def callback(data):
 
 def create_move_msg(strt, dest, piece, type=0):
     msg = MoveMessage()
-    ofs = np.array([0, 0, piece_heights[piece]])
-    msg.source = make_point_message(strt + ofs)
-    msg.destination = make_point_message(dest + ofs)
+    msg.source = make_point_message(strt)
+    msg.destination = make_point_message(dest)
+    msg.source.z = msg.destination.z = piece_heights[piece]
     msg.type = type
     return msg
 
@@ -346,8 +346,13 @@ def make_move(move):
         square_contents = square_contents.symbol()
         pub.publish(create_move_msg(end, end, square_contents, 1))
 
+    # TODO: if E.P, send capture of square behind dest
+
+    # TODO: if castling, send castle move
+
     # create the message
     square_contents = board.piece_at(move.from_square).symbol()
+
     pub.publish(create_move_msg(start, end, square_contents, 0))
 
 
