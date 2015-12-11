@@ -72,7 +72,8 @@ def lookup_transform(name):
 
 
 def video_lock_callback(lock):
-    video_lock = lock
+    global video_lock
+    video_lock = lock.data
 
 def callback(data):
     im = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
@@ -104,7 +105,7 @@ def callback(data):
         G = np.hstack([R, tvec.reshape((3,1))])
         outer_c = OUTERH[order].dot(G.T)
 
-        print '\n\n================================'
+        print '\n\n==============={}================='.format(video_lock)
         fields = 'topleft topright botleft botright'.split()
         for i in range(4):
             point = PointStamped()
@@ -116,7 +117,7 @@ def callback(data):
             p = tfl.transformPoint(BASE_FRAME, point).point
             setattr(message, fields[i], p)
             print [p.x, p.y, p.z]
-        if video_lock == 0:    
+        if video_lock != 1:    
             pub.publish(message)
 
     if PUBLISH_DRAWPOINTS:
@@ -143,7 +144,7 @@ if __name__ == '__main__':
                         help='output drawChessboardPoints Image topic')
     parser.add_argument('-s', '--scale', type=float, default=SCALE,
                         help='scale this much before corner-finding')
-    parser.add_argument('-e', 'eye_topic', required=True)
+    parser.add_argument('-e', '--eye-topic', required=True)
     args = parser.parse_args(rospy.myargv()[1:])
     board_topic = args.out
     in_topic = args.image
@@ -170,7 +171,7 @@ if __name__ == '__main__':
     tfl = tf.TransformListener()
 
     # set up connection to arm
-    global video_lock = 0
+    video_lock = 0
     rospy.Subscriber(args.eye_topic, Int8, video_lock_callback)
 
     # create a camera listener node

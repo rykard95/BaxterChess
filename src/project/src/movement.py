@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import sys
 import rospy
 import moveit_commander
 from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint, PlanningScene

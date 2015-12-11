@@ -1,4 +1,4 @@
 <launch>
     <node name='arm' pkg='project' type='arm.py' output='screen'
-          args='-m /brainstem'/>
+          args='-m /brainstem -e /optic/lock'/>
 </launch>

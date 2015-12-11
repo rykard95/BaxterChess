@@ -22,11 +22,6 @@ train_labels = data['train_labels'].flatten()
 test_images = data['test_images']
 test_labels = data['test_labels'].flatten()
 
-ntests = test_images.shape[0] / 3
-train_images = np.vstack([train_images, test_images[:ntests]])
-train_labels = np.hstack([train_labels, test_labels[:ntests]])
-test_images = test_images[ntests:]
-test_labels = test_labels[ntests:]
 
 # 250
 print("Planting trees!\n")

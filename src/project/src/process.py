@@ -1,3 +1,4 @@
+#! /usr/bin/python
 from scipy.ndimage import imread
 from matplotlib import pyplot as plt
 from os import listdir
@@ -15,7 +16,7 @@ if mode == 'color':
     labels = {"BlackOnBlack": np.array([2]), "BlackOnWhite": np.array([2]),\
             "EmptyBlack": np.array([0]), "EmptyWhite": np.array([0]),\
             "WhiteOnBlack": np.array([1]), "WhiteOnWhite": np.array([1])}
-elif mode == 'difference'
+elif mode == 'difference':
     labels = {"BlackOnBlack": np.array([1]), "BlackOnWhite": np.array([2]),\
             "EmptyBlack": np.array([0]), "EmptyWhite": np.array([0]),\
             "WhiteOnBlack": np.array([2]), "WhiteOnWhite": np.array([1])}
@@ -55,7 +56,6 @@ imgs = np.vstack(imgs)
 
 X = X[shuffle]
 Y = Y[shuffle]
-imgs[shuffle]
 
 
 n = X.shape[0]
@@ -64,9 +64,8 @@ X_train = X[:a]
 Y_train = Y[:a]
 X_valid = X[a:]
 Y_valid = Y[a:]
-imgs= imgs[a:]
 
 
-data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'imgs':imgs, 'mode':mode}
+data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'mode':mode}
 savemat('data', data)
 

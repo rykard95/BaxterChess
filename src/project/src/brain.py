@@ -22,7 +22,7 @@ grid = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten()
 piece_heights = {}
 ph = {'p':0.14, 'r':0.14, 'b':0.14, 'n':0.17, 'q':0.17, 'k':0.17}
 for key in ph:
-    piece_heights[key] = piece_heights[key.upper()] = ph[key] + 0.3
+    piece_heights[key] = piece_heights[key.upper()] = ph[key]
 del ph
 
 
@@ -71,15 +71,15 @@ def squareid_to_coord(square):
     file = chess.file_index(square)
     
     if PLAYING == 'BLACK':
-        rank = 7 - rank
-    elif PLAYING == 'WHITE':
         file = 7 - file
+    elif PLAYING == 'WHITE':
+        rank = 7 - rank
 
-    return np.array([rank+0.5, file+0.5, 1])
+    return np.array([file+0.5, rank+0.5, 1])
 
 def get_squaremap(corners):
-    d1t2 = (corners[2] - corners[1])/8.0
-    d1t3 = (corners[3] - corners[1])/8.0
+    d1t2 = (corners[1] - corners[0])/8.0
+    d1t3 = (corners[2] - corners[0])/8.0
     return np.vstack((d1t2,d1t3,corners[0])).T
 
 def determine_initial_state(image):
@@ -230,9 +230,11 @@ last_turn = -1
 BOARD_DIFFERENCE_THRESHOLD = 700000
 def callback(data):
     global board, prev_image, A, last_turn
+    print 'TRY'
 
     since = rospy.Time.now() - data.unperspective.header.stamp
     if since.to_sec() > 0.25:
+        print 'The board is stale'
         return
 
     points = [data.topleft, data.topright, data.botleft, data.botright]
@@ -243,6 +245,7 @@ def callback(data):
     image = v.cvtColor(image, v.COLOR_BGR2GRAY)
 
     if prev_image is None:
+        print 'Initialize prev_image'
         prev_image = image
         return
 
@@ -381,7 +384,7 @@ if __name__ == '__main__':
     board = chess.Board()
     prev_board = []
 
-    pub = rospy.Publisher(args.output, MoveMessage, latch=True, queue_size=10)
+    pub = rospy.Publisher(args.output, MoveMessage, latch=True, queue_size=2)
 
     rospy.Subscriber(args.input, BoardMessage, callback)
     print 'Frontal cortex ready!'

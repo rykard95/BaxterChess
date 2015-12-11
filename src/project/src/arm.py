@@ -14,6 +14,7 @@ import baxter_interface
 
 from moveit_msgs.msg import (
     OrientationConstraint, Constraints, PositionConstraint )
+from moveit_msgs.msg import *
 from geometry_msgs.msg import PoseStamped
 from project.msg import *
 from std_msgs.msg import Int8
@@ -26,7 +27,7 @@ BASE_FRAME = 'base'
 PERTURB_TOLS = [0.05, 0.05, 0.05]
 
 # go 7cm above desired board positions, then down
-OFFSET = np.array([0,0, 7/100])
+OFFSET = np.array([0,0, 0.07])
 
 CLOSE_AMOUNT = 100.0
 OPEN_AMOUNT = 100.0
@@ -148,6 +149,10 @@ def cele():
 
 
 def callback(move):
+    pub.publish(1)
+    rospy.sleep(1)
+    move.source.z = z_coord
+    move.destination.z = z_coord
     # check whether move is 'no move' or not
     if move.type == 0: # pickup-putdown request: 0 = normal, 1 = trash
         print(sty.st + "Executing move 0:" + sty.clr + " pickup-putdown...")
@@ -158,7 +163,8 @@ def callback(move):
         #  and return to the imaging position
         goto_action_pose()
         pickup(strt) 
-        putdown(dest) 
+        putdown(dest)
+        goto_action_pose()
         goto_image_pose()
     elif move.type == 1:
         print(sty.st + "Executing move 1:" + sty.clr + " pickup-put_in_trash...")
@@ -179,7 +185,7 @@ def callback(move):
         cele()
     else:
         print(sty.er + "SOMETHING TERRIBLE HAS HAPPENED!!!" + sty.clr)
-    print(sty.fin + "Finished executing move " + move.type + " ." + sty.clr)
+    print(sty.fin + "Finished executing move " + str(move.type) + " ." + sty.clr)
 
 
 def print_tf(transform, id):
@@ -224,6 +230,12 @@ def def_poses_test():
 def init_calib(def_poses_file):
     global default_action_pose, default_image_pose, trash_bin
 
+    print(sty.st+"Calibrating z-coordinate:"+sty.clr + "\nPlace Baxter's Gripper Arm on the chess table.")
+    raw_input("Press Enter to record position:")
+    global z_coord
+    z_coord = lookup_transform('right_hand')[0][2]
+    print("The z_coord is: " + sty.kw + str(z_coord) + sty.clr)
+
     print(sty.st + "Initializing Baxter's Default Arm Positions:" + sty.clr)
     file_choice = raw_input("Current default pose file is " + sty.fl + def_poses_file + sty.clr + 
         ". Would you like to change files?" + sty.yn)
@@ -264,6 +276,16 @@ def init_calib(def_poses_file):
         default_action_pose = None
         default_image_pose = None
         trash_bin = None
+
+        while 1:
+            print("Please put Baxter's arms in the default " + sty.kw + "IMAGING" + sty.clr + " pose.")
+            raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
+            default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
+            print_pose(default_image_pose)
+            recal = raw_input("Recalibrate?" + sty.yn)
+            if recal == 'n':
+                break
+
         while 1:
             print("Please put Baxter's arms in the default " + sty.kw + "ACTION" + sty.clr + " pose.")
             raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
@@ -276,15 +298,6 @@ def init_calib(def_poses_file):
             #     print("Moving Baxter into the new pose...")
             #     default_action_pose()
             #     rospy.sleep(0.5)
-            recal = raw_input("Recalibrate?" + sty.yn)
-            if recal == 'n':
-                break
-
-        while 1:
-            print("Please put Baxter's arms in the default " + sty.kw + "IMAGING" + sty.clr + " pose.")
-            raw_input("Press " + sty.blk + "Enter" +  sty.clr + " to record the pose:")
-            default_image_pose = [lookup_transform('right_hand'), lookup_transform('left_hand')]
-            print_pose(default_image_pose)
             recal = raw_input("Recalibrate?" + sty.yn)
             if recal == 'n':
                 break
@@ -340,10 +353,8 @@ if __name__ == '__main__':
     moveit_commander.roscpp_initialize(sys.argv)
     robot = moveit_commander.RobotCommander()
     scene = moveit_commander.PlanningSceneInterface()
-    # scene_publisher = rospy.Publisher(
-    #                                 '/move_group/display_planned_path',
-    #                                 moveit_msgs.msg.PlanningScene)
-    # rospy.sleep(5)
+    #scene_publisher = rospy.Publisher('planning_scene', moveit_msgs.msg.PlanningScene)
+
 
     # set planners
     right_arm = baxter_interface.Limb('right')
@@ -362,18 +373,19 @@ if __name__ == '__main__':
     # add the object boundaries to the scene
     # ubp = [0, 0, 0] # upper box position
     # ubd = [0, 0, 0] # '       ' dimension
-    # lbp = [0, 0 ,0] # lower box position
-    # lbd = [0, 0, 0] # '       ' dimesnion
+    # lbp = [0, -0.5, -1.1] # lower box position
+    # lbd = [1, 1, 1] # '       ' dimesnion
     # scene.addBox('upper_box', ubd[0], ubd[1], ubd[2], ubp[0], ubp[1], ubp[2], wait=False)
-    # scene.addBox('lower_box', lbd[0], lbd[1], lbd[2], lbp[0], lbp[1], lbp[2], wait=False)
-    # scene.waitForSync()
-
+    #pose = PoseStamped()
+    #pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = [0,0,-.1]
+    #pose.pose.orientation.w = 1
+    #scene.add_plane('table_plane', pose, (0,0,1))
     # set up TF
     tfl = tf.TransformListener()
 
     # create our node and its listeners and publishers
     rospy.Subscriber(args.move_topic, MoveMessage, callback)
-    global pub = rospy.Publisher(args.eye_topic, Int8, queue_size=3)
+    pub = rospy.Publisher(args.eye_topic, Int8, queue_size=5)
 
     # initialzie baxter's safe arm positions
     pub.publish(1)
