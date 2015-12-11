@@ -142,8 +142,8 @@ def callback(move):
     if move.type == 0: # pickup-putdown request: 0 = normal, 1 = trash
         print(sty.st + "Executing move 0:" + sty.clr + " pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
-        strt = assign_arr(tuple(move.source.x, move.source.y, move.source.z))
-        dest = assign_pull(tuple(move.destination.x, move.destination.y, move.destination.z))
+        strt = assign_arr(move.source)
+        dest = assign_arr(move.destination)
         #  put arms in action pose, pick up at strt, put down at dest,
         #  and return to the imaging position
         goto_action_pose()
@@ -152,7 +152,7 @@ def callback(move):
         goto_image_pose()
     elif move.type == 1:
         print(sty.st + "Executing move 1:" + sty.clr + " pickup-put_in_trash...")
-        strt = assign_arr(tuple(move.source.x, move.source.y, move.source.z))
+        strt = assign_arr(move.source)
         goto_action_pose()
         pickup(strt)
         goto_trash_pose()
