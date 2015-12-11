@@ -40,7 +40,7 @@ DSTPTS = np.array([[0,0], [IMSIZE[0],0], [0,IMSIZE[1]], IMSIZE],
                   dtype=np.float32)
 
 # amount to scale by before finding corners
-SCALE = 1
+SCALE = 0.33
 
 def find_chessboard_corners(image, scale=1):
     """
@@ -72,12 +72,12 @@ def lookup_transform(name):
 
 def callback(data):
     im = bridge.imgmsg_to_cv2(data, desired_encoding='bgr8')
-    im = v.undistort(im, MTX, DIST)
+    # im = v.undistort(im, MTX, DIST)
 
     found, corners = find_chessboard_corners(im, SCALE)
-    message = BoardMessage()
 
     if found:
+        message = BoardMessage()
 
         # rotation and translation of board relative to camera
         rvec, tvec, _ = v.solvePnPRansac(OBJP, corners, MTX, DIST)
@@ -95,12 +95,7 @@ def callback(data):
 
         if PUBLISH_UNDISTORT:
             impub.publish(message.unperspective)
-        if PUBLISH_DRAWPOINTS:
-            v.drawChessboardCorners(im, (7,7), corners, found)
-            ptpub.publish(bridge.cv2_to_imgmsg(im, encoding='bgr8'))
 
-        # find board-frame coordinates in the right order, then
-        # TODO: put them in the world frame and publish them
         R, _ = v.Rodrigues(rvec)
         G = np.hstack([R, tvec.reshape((3,1))])
         outer_c = OUTERH[order].dot(G.T)
@@ -119,6 +114,11 @@ def callback(data):
             print [p.x, p.y, p.z]
 
         pub.publish(message)
+
+    if PUBLISH_DRAWPOINTS:
+        v.drawChessboardCorners(im, (7,7), corners, found)
+        ptpub.publish(bridge.cv2_to_imgmsg(im, encoding='bgr8'))
+
 
 
 if __name__ == '__main__':
