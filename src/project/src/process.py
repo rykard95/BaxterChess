@@ -10,10 +10,6 @@ from scipy import ndimage
 
 mode = 'color'
 classes = ["BlackOnBlack", "BlackOnWhite", "EmptyBlack", "EmptyWhite", "WhiteOnBlack", "WhiteOnWhite"]
-# labels = {"BlackOnBlack": np.array([1,0,0,1,0]), "BlackOnWhite": np.array([1,0,0,0,1]),\
-#             "EmptyBlack": np.array([0,0,1,1,0]), "EmptyWhite": np.array([0,0,1,0,1]),\
-#             "WhiteOnBlack": np.array([0,1,0,1,0]), "WhiteOnWhite": np.array([0,1,0,0,1])}
-
 
 if mode == 'color':
     labels = {"BlackOnBlack": np.array([2]), "BlackOnWhite": np.array([2]),\
@@ -71,6 +67,6 @@ Y_valid = Y[a:]
 imgs= imgs[a:]
 
 
-data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'imgs':imgs}
+data = {'train_images': X_train, 'train_labels': Y_train, 'test_images': X_valid, 'test_labels': Y_valid, 'imgs':imgs, 'mode':mode}
 savemat('data', data)
 
