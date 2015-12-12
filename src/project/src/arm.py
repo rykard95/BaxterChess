@@ -167,8 +167,8 @@ def callback(move):
     move.source.z += z_coord
     move.destination.z += z_coord
     # check whether move is 'no move' or not
-    if move.type == 0: # pickup-putdown request: 0 = normal, 1 = trash
-        print(sty.st + "Executing move 0:" + sty.clr + " pickup-putdown...")
+    if move.type == 0 or move.type == 5: # pickup-putdown request: 0 = normal, 1 = trash
+        print(sty.st + "Executing move " + str(move.type) + ":" + sty.clr + " pickup-putdown...")
         # need to pick up a piece at strt, drop it off at dest
         strt = assign_arr(move.source)
         dest = assign_arr(move.destination)
@@ -178,7 +178,8 @@ def callback(move):
         pickup(strt) 
         putdown(dest)
         goto_action_pose()
-        goto_image_pose()
+        if move.type != 5:
+            goto_image_pose()
     elif move.type == 1:
         print(sty.st + "Executing move 1:" + sty.clr + " pickup-put_in_trash...")
         strt = assign_arr(move.source)
