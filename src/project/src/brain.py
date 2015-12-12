@@ -35,7 +35,7 @@ std_ordering = np.array(chess.SQUARES).reshape((8,8))[::-1,:].flatten()
 def initialize(image):
     # Figure out which side Baxter is playing
     global PLAYING, prev_board, ordering
-    PLAYING = "BLACK"#determine_initial_state(image)
+    PLAYING = determine_initial_state(image)
     if PLAYING == "WHITE":
         prev_board = np.array([2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,\
                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
@@ -406,7 +406,7 @@ if __name__ == '__main__':
     brain = pickle.load(open(args.brain, 'rb'))
     engine = chess.uci.popen_engine(args.engine)
     engine.uci()
-    board = chess.Board(fen='8/k7/8/8/3Pp3/r7/2K1R3/8 b ---- d3 0 12')
+    board = chess.Board()#fen='8/k7/8/8/3Pp3/r7/2K1R3/8 b ---- d3 0 12')
     prev_board = []
 
     pub = rospy.Publisher(args.output, MoveMessage, 
