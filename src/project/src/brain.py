@@ -228,7 +228,7 @@ def unmake_point_message(pt):
 
 prev_image = None
 last_turn = -1
-BOARD_DIFFERENCE_THRESHOLD = 700000
+BOARD_DIFFERENCE_THRESHOLD = 500000
 def callback(data):
     global board, prev_image, A, last_turn
 
@@ -335,25 +335,46 @@ def create_move_msg(strt, dest, piece, type=0):
 
 def make_move(move):
     print '## {}'.format(board.san(move))
-    
+
     # find real-world start & end positions 
     start = A.dot(squareid_to_coord(move.from_square))
     end = A.dot(squareid_to_coord(move.to_square))
 
+    dstpiece = board.piece_at(move.to_square)
+    srcpiece = board.piece_at(move.from_square).symbol()
+    dstfile = chess.file_index(move.to_square)
+    srcfile = chess.file_index(move.from_square)
+    filediff = np.abs(dstfile - srcfile)
+    
+
     # if we've captured, first send a message saying to remove that piece
-    square_contents = board.piece_at(move.to_square)
-    if square_contents != None:
-        square_contents = square_contents.symbol()
-        pub.publish(create_move_msg(end, end, square_contents, 1))
+    if dstpiece != None:
+        dstpiece = dstpiece.symbol()
+        pub.publish(create_move_msg(end, end, dstpiece, 1))
+    elif srcpiece in 'pP':
+        if board.has_legal_en_passant() and move.to_square == board.ep_square:
+            if chess.rank(move.to_square) == 2:
+                start = A.dot(squareid_to_coord(chess.square(3, chess.file_index(move.to_square))))
+                pub.publish(create_move_msg(start, end, 'P', 1))
+            if chess.rank(move.to_square) == 5:
+                start = A.dot(squareid_to_coord(chess.square(4, chess.file_index(move.to_square))))
+                pub.publish(create_move_msg(start, end, 'p', 1))
+    elif srcpiece in 'kK' and filediff == 2:
+        if dstfile == chess.file_index(chess.G1): # short castling
+            rfile0 = chess.file_index(chess.H1)
+            rfile1 = chess.file_index(chess.F1)
+        elif dstfile == chess.file_index(chess.C1): # long castling
+            rfile0 = chess.file_index(chess.A1)
+            rfile1 = chess.file_index(chess.D1)
+        rank = chess.rank_index(move.to_square)
+        rstart = chess.square(rfile0, rank)
+        rend = chess.square(rfile1, rank)
+        rstart = A.dot(squareid_to_coord(rstart))
+        rend = A.dot(squareid_to_coord(rend))
+        pub.publish(create_move_msg(rstart, rend, 'r', 5))
 
-    # TODO: if E.P, send capture of square behind dest
-
-    # TODO: if castling, send castle move
-
-    # create the message
-    square_contents = board.piece_at(move.from_square).symbol()
-
-    pub.publish(create_move_msg(start, end, square_contents, 0))
+    # create the final move message
+    pub.publish(create_move_msg(start, end, srcpiece, 0))
 
 
 
