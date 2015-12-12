@@ -35,7 +35,7 @@ std_ordering = np.array(chess.SQUARES).reshape((8,8))[::-1,:].flatten()
 def initialize(image):
     # Figure out which side Baxter is playing
     global PLAYING, prev_board, ordering
-    PLAYING = determine_initial_state(image)
+    PLAYING = "BLACK"#determine_initial_state(image)
     if PLAYING == "WHITE":
         prev_board = np.array([2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,\
                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
@@ -353,11 +353,11 @@ def make_move(move):
         pub.publish(create_move_msg(end, end, dstpiece, 1))
     elif srcpiece in 'pP':
         if board.has_legal_en_passant() and move.to_square == board.ep_square:
-            if chess.rank(move.to_square) == 2:
-                start = A.dot(squareid_to_coord(chess.square(3, chess.file_index(move.to_square))))
+            if chess.rank_index(move.to_square) == 2:
+                start = A.dot(squareid_to_coord(chess.square(chess.file_index(move.to_square),3)))
                 pub.publish(create_move_msg(start, end, 'P', 1))
-            if chess.rank(move.to_square) == 5:
-                start = A.dot(squareid_to_coord(chess.square(4, chess.file_index(move.to_square))))
+            if chess.rank_index(move.to_square) == 5:
+                start = A.dot(squareid_to_coord(chess.square(chess.file_index(move.to_square),4)))
                 pub.publish(create_move_msg(start, end, 'p', 1))
     elif srcpiece in 'kK' and filediff == 2:
         if dstfile == chess.file_index(chess.G1): # short castling
@@ -406,7 +406,7 @@ if __name__ == '__main__':
     brain = pickle.load(open(args.brain, 'rb'))
     engine = chess.uci.popen_engine(args.engine)
     engine.uci()
-    board = chess.Board()
+    board = chess.Board(fen='8/k7/8/8/3Pp3/r7/2K1R3/8 b ---- d3 0 12')
     prev_board = []
 
     pub = rospy.Publisher(args.output, MoveMessage, 
