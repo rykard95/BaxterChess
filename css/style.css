@@ -4,9 +4,12 @@
     background: FireBrick;
 }
 
+p {
+    line-height: 2;
+}
+
 .info{
     background: #01696C;
-    height: 300px;
     width: 85%;
     color:#F8F8F2;
     margin: 0 7.5%;
@@ -14,6 +17,9 @@
 
 }
 
+.img_wrapper {
+    text-align: center;
+}
 
 .navbar {
     margin-bottom: 0px;
