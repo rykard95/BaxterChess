@@ -43,21 +43,24 @@
                 [Video Here]
             </div>
             <div class='col-md-12' style='text-align:center;'>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     Eye Interface
                 </div>
-                <div class='col-md-4'>
+                <div class='col-md-6'>
                     Brain Interface
-                </div>
-                <div class='col-md-4'>
-                    Arm Interface
                 </div>
             </div>
             
         </div>
+        <div class='col-md-12 info'> 
+            <h2>Problems</h2>
+            <p>A few major issues we had were with the MoveIt-Python interface.  We were unable to add an obstacle using the programming interface even though we were able to add an obstacle using the Rviz interface.  Another problem that occurred was with our random forest.  Because of the nature of learning algorithms, we weren't able to obtain 100% accuracy when predicting the next board state.  When the Brain makes an error with the board state, everything goes downhill very quickly, such as Baxter making moves relentlessly.  One way to shave off some of the error would be to gather a multitude of data and then train on that dataset, but there will always exist some irreducible error. </p>
+        </div>
         <div class="col-md-12 info">
             <h2>Conclusion</h2>
-            <p>Giving Baxter the ability to manipulate real world chess pieces is pretty challenging.  Many problems from different disciplines appear in this task, namely, object recognition and homography from Computer Vision, and inverse kinematics and gripping from Robotics.  By incorporating all our knowledge from our classes and researching current robotics and vision techniques, we were able to give Baxter some ability to play chess in the real world.  However, there are still some rough edges that need smoothing.  For example, our sensing capabilities are around 98% accurate when using 300 trees in our random forest and about 6,000 training images.  That 2% error adds up very quickly when we get a new board image every second and there are 64 squares that we need to classify per image.  Another issue that arose when we were trying to find the inverse kinematics for Baxter when moving pieces on the chessboard.  Because of the RRT algorithm, the positions Baxter's arms end up in make it very difficult for it to play very long games of chess without hitting something when it is readjusting its arm.  These are just some things that can be improved given more time, but throughout the duration of our project, we have showed that it is possible to get Baxter to play at least a little chess.</p>
+            <p>Giving Baxter the ability to manipulate real world chess pieces is pretty challenging.  Many problems from different disciplines appear in this task, namely, object recognition and homography from Computer Vision, and inverse kinematics and gripping from Robotics.  By incorporating all our knowledge from our classes and researching current robotics and vision techniques, we were able to give Baxter some ability to play chess in the real world.</p>
+
+            <p>However, there are still some rough edges that need smoothing.  For example, our sensing capabilities are around 98% accurate when using 300 trees in our random forest and about 6,000 training images.  That 2% error adds up very quickly when we get a new board image every second and there are 64 squares that we need to classify per image.  Another issue that arose when we were trying to find the inverse kinematics for Baxter when moving pieces on the chessboard.  Because of the RRT algorithm, the positions Baxter's arms end up in make it very difficult for it to play very long games of chess without hitting something when it is readjusting its arm.  These are just some things that can be improved given more time, but throughout the duration of our project, we have showed that it is possible to get Baxter to play at least a little chess.</p>
         </div>
 
     </div>
