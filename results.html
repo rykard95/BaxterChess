@@ -36,6 +36,31 @@
         </div><!-- /.navbar-collapse -->
         </div><!-- /.container-fluid -->
     </nav>
+    <div class="content">
+        <div class="col-md-12 info">
+            <h2>Results</h2>
+            <div class='col-md-12' style='text-align:center;'>
+                [Video Here]
+            </div>
+            <div class='col-md-12' style='text-align:center;'>
+                <div class="col-md-4">
+                    Eye Interface
+                </div>
+                <div class='col-md-4'>
+                    Brain Interface
+                </div>
+                <div class='col-md-4'>
+                    Arm Interface
+                </div>
+            </div>
+            
+        </div>
+        <div class="col-md-12 info">
+            <h2>Conclusion</h2>
+            <p>Giving Baxter the ability to manipulate real world chess pieces is pretty challenging.  Many problems from different disciplines appear in this task, namely, object recognition and homography from Computer Vision, and inverse kinematics and gripping from Robotics.  By incorporating all our knowledge from our classes and researching current robotics and vision techniques, we were able to give Baxter some ability to play chess in the real world.  However, there are still some rough edges that need smoothing.  For example, our sensing capabilities are around 98% accurate when using 300 trees in our random forest and about 6,000 training images.  That 2% error adds up very quickly when we get a new board image every second and there are 64 squares that we need to classify per image.  Another issue that arose when we were trying to find the inverse kinematics for Baxter when moving pieces on the chessboard.  Because of the RRT algorithm, the positions Baxter's arms end up in make it very difficult for it to play very long games of chess without hitting something when it is readjusting its arm.  These are just some things that can be improved given more time, but throughout the duration of our project, we have showed that it is possible to get Baxter to play at least a little chess.</p>
+        </div>
+
+    </div>
 
 <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>

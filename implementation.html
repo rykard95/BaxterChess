@@ -48,11 +48,13 @@
         </div>
         <div class='info col-md-12' name='brain'>
             <h2>The Brain</h2>
-            <div class="col-md-6">
-                <p>[Picture Here]</p>
-            </div>   
-            <div class="col-md-6">
-                <p>After receiving image and coordinate information from the Eye, the Brain must update its internal state, communicate with its chess engine, and then send movement coordinates to the Arm.</p>
+            <div class="col-md-12">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfbBZlvd9rB2EtRjC4ThtzRGMSwJCLNNec-rgjcpTrDrWcoVlydTSaG8s"
+                <p>After receiving image and coordinate information from the Eye, the Brain must update its internal state, communicate with its chess engine, and then send movement coordinates to the Arm. </p>
+                <p>The first step in this process is updating the Brain's internal state.  Using its previous board state and the chess engine API, the Brain generates all possible next board states.  Afterwards, it takes the 2D board image and use that as evidence in order to infer the next board state.  In order to figure out what the board is, we take our 2D images and split it into individual squares in order from top left to bottom right.  We then featurize these squares using a <a href="https://en.wikipedia.org/wiki/Histogram_of_oriented_gradients"><b>Histogram of Oriented Gradients</b></a> and the send these feature vectors to a <a href=""><b>Random Decision Forest</b></a> that has been trained to recognize empty squares and piece colors.  For each square, we get a probability distribution of the possible states: empty, contains a white piece, and contains a black piece.  From there, we take each possible board and weight each board using the log sum of the probability of the board given our image.  We then choose the board with the greatest weight as our board state</p>
+                <p>Once the Brain figures out what board state it is in, it can then send this board to the chess engine and query a next move.  When the engine returns a move in UCI notation (i.e 'e1g1'), the brain then uses the coordinates sent from the Eye to map the squares in the move to world frame coordinates.  Also returned from the engine is whether of not the move was a 'capture' and we handle that by passing that message onwards to the Arm.  We then wrap these coordinates in a <em><b>MoveMessage (?)</b></em> and then publish that message to the <em><b>Which topic??</b></em> </p>
+                <p>The python packages used in this module are: <b>Sklearn, Skimage, and python-chess</b>.</p>
+                    [Logos of each package]
             </div>   
         </div>
         <div class='info col-md-12' name='arm'>
