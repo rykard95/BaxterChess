@@ -18,7 +18,6 @@ from project.msg import BoardMessage, MoveMessage
 from geometry_msgs.msg import Point
 
 PIXEL_SIZE = 256 #Read from images
-squarecolor = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten() == 1
 
 
 piece_heights = {}
@@ -395,10 +394,13 @@ if __name__ == '__main__':
     ASK_IF_CORRECT = not args.save_mle_noask
 
     brain = pickle.load(open(args.brain, 'rb'))
+    iplusj = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten()
     if brain.mode == 'difference':
         print 'DIFFERENCE MODE'
+        squarecolor = iplusj == 1
     elif brain.mode == 'color':
         print 'COLOR MODE'
+        squarecolor = iplusj != 0
     else:
         print 'NO MODE AT ALL!!'
     engine = chess.uci.popen_engine(args.engine)
