@@ -13,7 +13,7 @@ from sklearn.svm import SVC
 
 data = loadmat('data.mat')
 
-MODE = 'color' #Todo: get this from the data
+MODE = data['mode'] 
 print("Preparing soil.")
 train_images = data['train_images']
 n = train_images.shape[0]

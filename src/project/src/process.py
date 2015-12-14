@@ -10,7 +10,7 @@ from skimage.feature import hog
 from scipy import ndimage
 
 
-mode = 'color'
+mode = 'difference'
 classes = ["BlackOnBlack", "BlackOnWhite", "EmptyBlack", "EmptyWhite", "WhiteOnBlack", "WhiteOnWhite"]
 
 if mode == 'color':

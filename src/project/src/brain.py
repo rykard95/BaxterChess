@@ -18,14 +18,14 @@ from project.msg import BoardMessage, MoveMessage
 from geometry_msgs.msg import Point
 
 PIXEL_SIZE = 256 #Read from images
-grid = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten()
+squarecolor = (-1)**np.mgrid[0:8,0:8].T.reshape((-1,2)).sum(axis=1).flatten() == 1
+
 
 piece_heights = {}
-ph = {'p': 0.005, 'n': 0.01, 'b': 0.01, 'r': 0.01, 'q': 0.01, 'k': 0.01}
+ph = {'p': 0.005, 'n': 0.01, 'b': 0.01, 'r': 0.01, 'q': 0.02, 'k': 0.02}
 for key in ph:
     piece_heights[key] = piece_heights[key.upper()] = ph[key]
 del ph
-
 
 PLAYING = None
 
@@ -34,19 +34,11 @@ std_ordering = np.array(chess.SQUARES).reshape((8,8))[::-1,:].flatten()
 
 def initialize(image):
     # Figure out which side Baxter is playing
-    global PLAYING, prev_board, ordering
+    global PLAYING, ordering
     PLAYING = determine_initial_state(image)
     if PLAYING == "WHITE":
-        prev_board = np.array([2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,\
-                                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
-                                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
-                                1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1])
         ordering = std_ordering
     elif PLAYING == "BLACK":
-        prev_board = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,\
-                                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
-                                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\
-                                2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2])
         ordering = std_ordering[::-1]
     elif PLAYING in ("wb", "bw"):
         PLAYING = None
@@ -83,26 +75,23 @@ def get_squaremap(corners):
     d1t3 = (corners[2] - corners[0])/8.0
     return np.vstack((d1t2,d1t3,corners[0])).T
 
+def differencify_boardmask(mask):
+    out = np.zeros(mask.shape)
+    out[mask==1] = 2
+    out[mask==2] = 1
+    return out
+
 def determine_initial_state(image):
     evidence, __, __ = detect_pieces(image)
-    states = {"WHITE":np.concatenate([np.ones(16) + 1, np.zeros(32), np.ones(16)]),\
-                "BLACK": np.concatenate([np.ones(16), np.zeros(32), np.ones(16)+1]),\
-                "wb":np.array([1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2,\
-                            1,1,0,0,0,0,2,2]),\
-                "bw":np.array([2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,\
-                            2,2,0,0,0,0,1,1,])}
+    whitestate = np.concatenate([np.ones(16)+1, np.zeros(32), np.ones(16)])
+
+    if brain.mode == 'difference':
+        whitestate = differencify_boardmask(whitestate)
+            
+    states = {"WHITE": whitestate,
+              "BLACK": whitestate[::-1],
+              "bw":    whitestate.reshape((8,8)).T.flatten(),
+              "wb":    whitestate.reshape((8,8)).T.flatten()[::-1]}
     for state in states:
         states[state] = compute_score(states[state], evidence)
     return max(states, key=states.get)
@@ -156,17 +145,17 @@ def board_to_mask(board):
     Turns a Chess.Board into an array of
     empty, white, black array
     """
-    mask = np.zeros((64,))
+    mask = np.zeros((64,), dtype=int)
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece == None:
             piece = 0
-        elif piece.color == True:    
+        elif piece.color == squarecolor[square]:    
             piece = 1
         else:
             piece = 2
         mask[std_ordering[square]] = piece
-    return mask.astype(int)
+    return mask
 
 minf = float('-inf')
 def most_prob_state(evidence, board):
@@ -185,9 +174,8 @@ def most_prob_state(evidence, board):
 
     print biggest, second
 
-    epsilon = 0.1
+    epsilon = 1
     if not biggest[1] - second[1] >= epsilon:
-        print 'Not a big enough difference'
         return board, None
     if biggest[0] is False:
         return board, False
@@ -261,11 +249,15 @@ def callback(data):
     board, move = most_prob_state(evidence, board)
     print board
 
+    b = board_to_mask(board)
+    ind = np.where(b != labels)[0]
+    print(ind)
+
 
     #Data gathering
     if SAVE_MLE_ERRORS:
         if ASK_IF_CORRECT:
-            cor = raw_input("Was this board guess correct? [y/n/?]:")
+            cor = raw_input("Was this board guess correct? [Y/n/?]:")
             if '?' in cor: 
                 if move: board.pop()
                 return
@@ -275,23 +267,22 @@ def callback(data):
 
         b = board_to_mask(board)
         ind = np.where(b != labels)[0]
-        print(ind)
 
         p = '/home/shallowblue/Project/src/project/images/maybe-train/'
         for j in ind:
             if brain.mode == 'difference':
                 if b[j] == 1:
-                    if grid[j] == 1:
+                    if squarecolor[j]:
                         kind = "WhiteOnWhite/"
                     else:
                         kind = "WhiteOnBlack/"
                 elif labels[j] == 2:
-                    if grid[j] == 1:
+                    if squarecolor[j]:
                         kind = "BlackOnBlack/"
                     else:
                         kind = "BlackOnWhite/"
                 elif labels[j] == 0:
-                    if grid[j] == 1:
+                    if squarecolor[j]:
                         kind = "EmptyWhite/"
                     else:
                         kind = "EmptyBlack/"            
@@ -302,7 +293,7 @@ def callback(data):
                     kind =  "WhiteOn"
                 else:
                     kind = "BlackOn"
-                if grid[j] == 1:
+                if squarecolor[j] == 1:
                     kind += "White/"
                 else:
                     kind += "Black/"
@@ -320,7 +311,7 @@ def callback(data):
     if board.turn == (PLAYING == 'WHITE') and board.fullmove_number > last_turn:
         last_turn = board.fullmove_number
         engine.position(board)
-        reply = engine.go(movetime=500, async_callback=False).bestmove
+        reply = engine.go(movetime=50, async_callback=False).bestmove
         make_move(reply)
 
 
@@ -354,11 +345,11 @@ def make_move(move):
     elif srcpiece in 'pP':
         if board.has_legal_en_passant() and move.to_square == board.ep_square:
             if chess.rank_index(move.to_square) == 2:
-                start = A.dot(squareid_to_coord(chess.square(chess.file_index(move.to_square),3)))
-                pub.publish(create_move_msg(start, end, 'P', 1))
+                taken = chess.square(chess.file_index(move.to_square), 3)
             if chess.rank_index(move.to_square) == 5:
-                start = A.dot(squareid_to_coord(chess.square(chess.file_index(move.to_square),4)))
-                pub.publish(create_move_msg(start, end, 'p', 1))
+                taken = chess.square(chess.file_index(move.to_square), 4)
+            pstart = A.dot(squareid_to_coord(taken))
+            pub.publish(create_move_msg(pstart, pstart, 'P', 1))
     elif srcpiece in 'kK' and filediff == 2:
         if dstfile == chess.file_index(chess.G1): # short castling
             rfile0 = chess.file_index(chess.H1)
@@ -404,10 +395,21 @@ if __name__ == '__main__':
     ASK_IF_CORRECT = not args.save_mle_noask
 
     brain = pickle.load(open(args.brain, 'rb'))
+    if brain.mode == 'difference':
+        print 'DIFFERENCE MODE'
+    elif brain.mode == 'color':
+        print 'COLOR MODE'
+    else:
+        print 'NO MODE AT ALL!!'
     engine = chess.uci.popen_engine(args.engine)
     engine.uci()
-    board = chess.Board()#fen='8/k7/8/8/3Pp3/r7/2K1R3/8 b ---- d3 0 12')
-    prev_board = []
+    # default starting position
+    board = chess.Board()
+    # en passant test position
+    # board = chess.Board(fen='2r4r/kpp1pppp/b7/4P3/4pP2/2P3P1/PPKPR2P/5B1R w ---- - 0 12')
+    # castling test position
+    # board = chess.Board(fen='4k2r/7p/3p1K2/4r3/8/8/8/8 b k - 0 50')
+    # PLAYING='BLACK'
 
     pub = rospy.Publisher(args.output, MoveMessage, 
                           latch=True, queue_size=2)
