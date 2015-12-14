@@ -21,7 +21,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">Team 21</a>
+          <a class="navbar-brand" href="https://github.com/rykard95/BaxterChess">Team 21</a>
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -39,22 +39,50 @@
     <div class="content">
         <div class="col-md-12 info">
             <h2>Results</h2>
-            <div class='col-md-12' style='text-align:center;'>
-                [Video Here]
+            <div class='row'>
+            <div class='col-md-6' style='text-align:center;'>
+                <h3>Calibration Video</h3>
+                <iframe width="500" height="315" src="https://www.youtube.com/embed/CIEVz2y0UCM" frameborder="0" allowfullscreen></iframe>
+                <p>This video shows the steps needed to teach Baxter safe poses it should enter into when performing a move action and when observing the board.</p>
+            </div>
+            <div class='col-md-6' style='text-align:center;'>
+                <h3>Castling Video</h3>
+                <iframe width="500" height="315" src="https://www.youtube.com/embed/X6HNA2m7kNI" frameborder="0" allowfullscreen></iframe>
+                <p>This video shows Baxter performing a successful castling move.</p>
+            </div>
+            </div>
+            <div class='row'>
+            <div class='col-md-6' style='text-align:center;'>
+                <h3>En Passant Video</h3>
+                <iframe width="500" height="315" src="https://www.youtube.com/embed/aCSAMBnwj20" frameborder="0" allowfullscreen></iframe>
+                <p>This videos shows Baxter recognizing and performing an En Passant capture.</p>
+            </div>
+            <div class='col-md-6' style='text-align:center;'>
+                <h3>Fool's Mate Video</h3>
+                <iframe width="500" height="315" src="https://www.youtube.com/embed/O5wZB3M3Tvc" frameborder="0" allowfullscreen></iframe>
+                <p>This is a video of Baxter perceiving a possible Fool's Mate and quickly finishing a chess game.</p>
+            </div>
             </div>
             <div class='col-md-12' style='text-align:center;'>
                 <div class="col-md-6">
-                    Eye Interface
+                    <h3>Eye Interface</h3>
                 </div>
                 <div class='col-md-6'>
-                    Brain Interface
+                    <h3>Brain Interface</h3>
+                    <div class='col-md-12'>
+                        <img src="imgs/fools1.png">
+                    </div>
+                    <div class='col-md-12'>
+                        <img src="imgs/fools2.png">
+                    </div>
                 </div>
             </div>
             
         </div>
         <div class='col-md-12 info'> 
             <h2>Problems</h2>
-            <p>A few major issues we had were with the MoveIt-Python interface.  We were unable to add an obstacle using the programming interface even though we were able to add an obstacle using the Rviz interface.  Another problem that occurred was with our random forest.  Because of the nature of learning algorithms, we weren't able to obtain 100% accuracy when predicting the next board state.  When the Brain makes an error with the board state, everything goes downhill very quickly, such as Baxter making moves relentlessly.  One way to shave off some of the error would be to gather a multitude of data and then train on that dataset, but there will always exist some irreducible error. </p>
+            <p>A few major issues we had were with the MoveIt-Python interface.  We were unable to add an obstacle using the programming interface even though we were able to add an obstacle using the Rviz interface.  Another problem that occurred was with our random forest.  Because of the nature of learning algorithms, we weren't able to obtain 100% accuracy when predicting the next board state.  When the Brain makes an error with the board state, everything goes downhill very quickly, such as Baxter making moves relentlessly.  This is probably the result of the difference in lighting between the training set and the real world, which is alsways a problem in Computer Vision.  One way to shave off some of the error would be to gather a multitude of data and then train on that dataset, but there will always exist some irreducible error. </p>
+            <p>Some issues with Baxter is that it performs larger movements better than smaller precise movements.  That means when dealing with chess pieces, we needed to make sure that the arm traveled a large enough distance in order to guarantee a chess piece move.  Near the end, the gripper seems to have started to wobble a little, which made picking up the rook particularly difficult for Baxter.</p>
         </div>
         <div class="col-md-12 info">
             <h2>Conclusion</h2>

@@ -8,6 +8,7 @@ a {
 }
 p {
     line-height: 2;
+    padding: 0 20px;
 }
 
 img {
@@ -23,7 +24,7 @@ img {
     color:#F8F8F2;
     margin: 0 7.5%;
     margin-bottom: 10px;
-
+    padding-bottom: 15px;
 }
 
 .img_wrapper {
