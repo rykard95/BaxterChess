@@ -40,7 +40,39 @@
         <div class='info col-md-12' name='eye'>
             <h2>The Eye</h2>
             <div class="col-md-6">
-                <p>Using Baxter's hand cameras, we obtain a raw image of the board and its surroundings.  It is the Eye node's job to find the chess board and map it to a 2D representation for the brain to analyze.  The Eye accomplishes this task by [Alex's Stuff Here]</p>
+                <p>
+                    Using Baxter's hand cameras, we obtain a raw image of the board and its 
+                    surroundings.  It is the Eye node's job to find the chess board and map it to a 
+                    2D representation (as if taken from directly above by a camera pointing straight 
+                    down) for the brain to analyze, as well as calculate the real-world coordinates 
+                    of the chessboard
+                </p>
+                <p>
+                    The first step is to find the region in the image corresponding to the
+                    chessboard. It turns out that this is pretty much a solved problem thanks
+                    to the common use of checkerboards for camera calibration; we used a
+                    built-in OpenCV library function to find the corners of the board on a
+                    scaled-down version of the camera input image, then scaled the computed
+                    corners back up to match the original input.
+                </p>
+                <p>
+                    At this point in the pipeline, we have both the coordinates of the chessboard
+                    corners in the chessboard frame (computed from the hardcoded board square size
+                    and the known geometry of all chessboards) and the points that they map to in
+                    the input image from the hand camera. 
+                    From this correspondance, we can compute a homography between the two point sets
+                    (using the RANSAC algorithm to discard outliers because some of the detected
+                    corners will actually be part of a piece rather than the board itself).
+                    We do this by using OpenCV library functions to find the RBT from the
+                    camera to the chessboard frame and compute the homography based on that RBT.
+                </p>
+                <p>
+                    The inverse-perspective-mapped version of the chessboard image and the 
+                    world-frame positions of the four outside corners are then computed.
+                    Then, all that remains is to package up the relevant data into messages and 
+                    send it to the brain: the inverse-perspective chessboard image as well as the
+                    real-world coordinates of the four corners.
+                </p>
             </div>   
             <div class="col-md-6">
                 <p>[Picture Here]</p>
