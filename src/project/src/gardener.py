@@ -30,13 +30,10 @@ print("Planting trees!\n")
 fc = RandomForestClassifier(n_estimators=500, bootstrap=True, n_jobs=4)
 
 print("Growing trees!\n")
-#bdt.fit(train_images, train_labels)
 fc.fit(train_images, train_labels)
 
 print("The trees are thinking!")
-#pred = bdt.predict(test_images)
 pred = fc.predict(test_images)
-#pred_prob = bdt.predict_proba(test_images)
 pred_prob = fc.predict_proba(test_images)
 
 # clf = SVC(C=200)
@@ -48,7 +45,6 @@ print("The accuracy is " + str(float(sum(acc))/len(acc)))
 ind = np.where(acc == 0)
 print("wrong guesses: " + str(pred[ind]))
 print("actual labels: " + str(test_labels[ind]))
-#print("probabilities: " + str(pred_prob[ind]))
 
 for i in ind[0]:
     lreal = np.log(pred_prob[i][test_labels[i]])
@@ -59,7 +55,6 @@ for i in ind[0]:
 # for im in richard:
     #plt.imshow(im.reshape((24,24)), cmap=plt.cm.gray)
     #plt.show()
-
 
 print("Recalling training set")
 pred = fc.predict(train_images)

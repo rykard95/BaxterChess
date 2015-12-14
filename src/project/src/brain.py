@@ -276,12 +276,12 @@ def callback(data):
                         kind = "WhiteOnWhite/"
                     else:
                         kind = "WhiteOnBlack/"
-                elif labels[j] == 2:
+                elif b[j] == 2:
                     if squarecolor[j]:
                         kind = "BlackOnBlack/"
                     else:
                         kind = "BlackOnWhite/"
-                elif labels[j] == 0:
+                elif b[j] == 0:
                     if squarecolor[j]:
                         kind = "EmptyWhite/"
                     else:
