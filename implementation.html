@@ -39,7 +39,7 @@
     <div class="content">
         <div class='info col-md-12' name='eye'>
             <h2>The Eye</h2>
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <p>
                     Using Baxter's hand cameras, we obtain a raw image of the board and its 
                     surroundings.  It is the Eye node's job to find the chess board and map it to a 
@@ -47,6 +47,7 @@
                     down) for the brain to analyze, as well as calculate the real-world coordinates 
                     of the chessboard
                 </p>
+                <img src="imgs/boardpoints.jpg">
                 <p>
                     The first step is to find the region in the image corresponding to the
                     chessboard. It turns out that this is pretty much a solved problem thanks
@@ -73,9 +74,6 @@
                     send it to the brain: the inverse-perspective chessboard image as well as the
                     real-world coordinates of the four corners.
                 </p>
-            </div>   
-            <div class="col-md-6">
-                <p>[Picture Here]</p>
             </div>   
         </div>
         <div class='info col-md-12' name='brain'>
